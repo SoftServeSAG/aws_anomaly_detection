@@ -1,0 +1,10 @@
+Data: number of bytes transferred within network per 5 minutes
+
+Enter periods using comma: (day, week)
+288, 2016
+Probability for computing aggregated value for thresholds:
+0.7
+Probability for computing aggregation for periods:
+0.7
+Concatenation similarity coefficient:
+0.25

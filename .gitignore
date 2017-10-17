@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+

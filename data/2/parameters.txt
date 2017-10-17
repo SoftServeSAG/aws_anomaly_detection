@@ -1,0 +1,10 @@
+Data: number of orders for set of restaurants per hour
+
+Enter periods using comma: (day, month)
+24, 744
+Probability for computing aggregated value for thresholds:
+0.9
+Probability for computing aggregation for periods:
+0.7
+Concatenation similarity coefficient:
+0.1
