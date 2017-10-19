@@ -18,7 +18,7 @@ data <- xts(x = HH_data$Voltage, order.by = HH_data$datetime)
 
 #remove NA
 data_na.rm=remove_na_from_data(data, type = "mean")
-ts_type="hours"
+ts_type="days"
 ts_val=1
 #remove NA
 data.agg=aggregation_data(data_na.rm, type = paste(ts_val, ts_type), func_aggregate = 'median', quantile_percent = .5)
@@ -41,16 +41,21 @@ plotfirstPeriods(data = data.agg, periods = periods, N = 100)
 data.reconstructed=app_timeseries(data.agg$values, dsigma = 0.1)
 
 # DT model training
+if (length(periods)==1)
+{
+  periods=c(periods, nrow(data.agg))
+}
 model.DT<-dynamicThreshold.model(metric = data.agg$values,
                 metric_reconstructed = data.reconstructed,
                 period = sort(periods),
-                prob_th = 0.9,
-                prob_agg = 0.5,
-                k = 0.1,
-                similar = 0.25,
+                prob_th = 0.8,
+                prob_agg = 0.9,
+                k = 0.15,
+                similar = 0.05,
                 corrected_by = c(1, 1, 1,1,1,1),
                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
 
 # plot timeseries with anomalies
 plotfirstPeriods(data = data.agg, periods = periods, anomalies = model.DT$anomalies)
+plotTSThresholdsAnomalies(data=data.agg, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
 
