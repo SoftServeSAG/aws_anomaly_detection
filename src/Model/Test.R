@@ -6,7 +6,7 @@ source("Model/find_Thresh.R")
 source("Model/find_Thresh_set.R")
 source("Model/plotfirstPeriods.R")
 
-#source("Preprocessing.R")
+source("Preprocessing.R")
 library(plotly)
 library(Rssa)
 
@@ -18,7 +18,7 @@ data <- xts(x = HH_data$Voltage, order.by = HH_data$datetime)
 
 #remove NA
 data_na.rm=remove_na_from_data(data, type = "mean")
-ts_type="hour"
+ts_type="hours"
 ts_val=1
 #remove NA
 data.agg=aggregation_data(data_na.rm, type = paste(ts_val, ts_type), func_aggregate = 'median', quantile_percent = .5)
