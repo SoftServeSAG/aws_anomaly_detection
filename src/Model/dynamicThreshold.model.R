@@ -6,6 +6,8 @@ dynamicThreshold.model <- function(metric,
                           k = 0.1,
                           similar = 0.1,
                           corrected_by = rep(1, 1),
+                          plt = TRUE,
+                          plt_period = NULL,
                           identical_thresholds = c(FALSE, FALSE)) {
   #Load Thresholds Determination
   #
@@ -20,18 +22,19 @@ dynamicThreshold.model <- function(metric,
   # identical_thresholds - (default c(FALSE, FALSE)) indication if thresholds should be the same for periods of different levels
 
         #Calculating sets of thresholds
+        options(warn=-1)
         thresholds <- find_Thresh_set(metric = metric,
                                       metric_reconstructed = metric_reconstructed,
                                       period = period[1],
                                       period_set = period[2],
                                       simil = 1,
-                                      alpha = 0.05,
+                                      alpha = 0.1,
                                       k = 0,
                                       divide_min = FALSE,
                                       simil_measure = max)
 
         #Cutting out
-        metric <- metric[1:(floor(length(metric) / period[length(period)]) *  period[length(period)])]
+       # metric <- metric[1:(floor(length(metric) / period[length(period)]) *  period[length(period)])]
 
         #Concatenate all sets
         all_thresholds <- data.frame(do.call(rbind, thresholds))
@@ -58,7 +61,7 @@ dynamicThreshold.model <- function(metric,
                 if (!is.na(period[(lev2+1)])) {
                         levels_part <- NULL
                         for (i in 1:(period[lev2+1]/period[lev2])) {
-                                for (ii in 1:floor(length(metric)/period[lev2+1])) {
+                                for (ii in 1:(floor(length(metric)/period[lev2+1])+1)) {
                                         mt <- metric[(1 + period[lev2]*(i-1) + period[lev2+1]*(ii-1)):(period[lev2]*i + period[lev2+1]*(ii-1))]
                                         levels_part <- c(levels_part, mt)
                                         levels_data_row <- c(levels_data_row, mt)
@@ -68,9 +71,9 @@ dynamicThreshold.model <- function(metric,
                 }
 
                 if (is.na(period[(lev2+1)])) {
-                        for (i in 1:floor(length(metric)/period[lev2])) {
+                        for (i in 1:(floor(length(metric)/period[lev2])+1)) {
                                 mt <- metric[((i-1)*period[lev2] + 1):((i-1)*period[lev2] + period[lev2])]
-                                levels_data <- c(levels_data, quantile(mt, probs = prob_agg))
+                                levels_data <- c(levels_data, quantile(mt, probs = prob_agg, na.rm = T))
                                 levels_data_row <- c(levels_data_row, mt)
                         }
                 }
@@ -83,6 +86,8 @@ dynamicThreshold.model <- function(metric,
 
                 Levels[[lev2]] <- as.vector(Levels[[lev2]] * corrected_by[lev2])
         }
+        
+        Levels=lapply(Levels, function(x){x[is.na(x)]=1; return(x)})
 
         one_period <- list()
 
@@ -103,13 +108,17 @@ dynamicThreshold.model <- function(metric,
         one_period <- list(thresholds = one_period[[1]]$thresholds, levels = Levels[[1]])
 
         #Determining anomalies in train data
-        dts <- one_period$thresholds[rep(1:nrow(one_period$thresholds), floor(length(metric) / period[1])),]
-        dts$Day <- rep(1:floor(length(metric) / period[1]), each = nrow(one_period$thresholds))
+        dts <- one_period$thresholds[rep(1:nrow(one_period$thresholds), (floor(length(metric) / period[1])+1)),]
+        dts$Day <- rep(1:(floor(length(metric) / period[1])+1), each = nrow(one_period$thresholds))
 
-        dts$Threshold <- dts$Threshold * rep(rep(Levels[[1]], times = length(Levels[[2]])), each = nrow(one_period$thresholds))
+        V=rep(rep(Levels[[1]], times = length(Levels[[2]])), each = nrow(one_period$thresholds))
+        V=V[1:min(length(V), length(dts$Threshold))]
+        dts$Threshold <- dts$Threshold * V
 
         for (lev2 in 2:length(period)) {
-                dts$Threshold <- dts$Threshold * rep(rep(Levels[[lev2]], each = period[lev2] / period[1]), each = nrow(one_period$thresholds))
+                V=rep(rep(Levels[[lev2]], each = period[lev2] / period[1]), each = nrow(one_period$thresholds))
+                V=V[1:min(length(V), length(dts$Threshold))]
+                dts$Threshold <- dts$Threshold * V
 
         }
 
@@ -123,8 +132,61 @@ dynamicThreshold.model <- function(metric,
         a<-rep(dts$Threshold, dts$Len)
 
         anomaly <- metric > a
+        
+        # if (plt == TRUE) {
+        #   
+        #   #x11(width = 14, height = 10)
+        #   
+        #   par(oma = c(4, 1, 1, 1), bg = "gray95")
+        #   
+        #   plt_range <- c(1, length(metric))
+        #   
+        #   if (!is.null(plt_period)) {
+        #     plt_range <- c((1 + (plt_period-1)*period[length(period)]), (period[length(period)] + (plt_period-1)*period[length(period)]))
+        #   }
+        #   
+        #   plot(metric, type = "l", ylim = c(min(metric), max(metric)), xlim = plt_range, xlab = "Time", ylab = "Metric", xaxt='n', yaxt = "n", col = "black", cex.lab = 1.3)
+        # 
+        #   for (lev2 in 1:length(period)) {
+        #     for (i in 1:floor(length(metric) / period[lev2])) {
+        #       abline(v = period[lev2] * i, col = "tan1", lwd = lev2)
+        #     }
+        #   }
+        #   
+        #   rect(dts$Minute_Low,
+        #        min(metric),
+        #        dts$Minute_High,
+        #        dts$Threshold,
+        #        lty = 2,
+        #        density = 20,
+        #        col = 139)
+        #   
+        #   points(c(1:length(metric))[anomaly],
+        #          metric[anomaly],
+        #          col = "red",
+        #          pch = 16)
+        #   
+        #   
+        #   axis(1, at=c(1, period[1] * (1:floor(length(metric) / period[1]))), labels = TRUE, tick = TRUE)
+        #   axis(2, at=c(0, round(dts$Threshold)), labels = TRUE, tick = TRUE)
+        #   
+        #   legend("bottom",
+        #          legend = c("TimeSeries", "Anomaly", "Normal zone"),
+        #          lwd = 1, cex = 1,
+        #          xpd = TRUE,
+        #          horiz = TRUE,
+        #          inset = c(0,1),
+        #          bty = "n",
+        #          col = c("gray", "red", 139),
+        #          lty = c(1, NA, 2),
+        #          pch = c(NA, 16, NA))
+        # }
+        options(warn=0)
  
-        return(list(thresholds = one_period$thresholds, levels = Levels,  period = period, anomalies = which(anomaly == TRUE)))
+        return(list(thresholds = one_period$thresholds, levels = Levels,  
+                    period = period, 
+                    anomalies = which(anomaly == TRUE), 
+                    th_plot = dts))
 }
 
 #test
