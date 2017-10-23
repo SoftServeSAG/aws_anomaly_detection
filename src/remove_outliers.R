@@ -45,7 +45,7 @@ remove_outliers_from_data <- function(data, type='none', number=5){
            }
     )
     
-    return(as.data.frame(data))
+    return(data)
 }
 
 # testing

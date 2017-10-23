@@ -41,7 +41,7 @@ remove_na_from_data <- function(data, type='zero'){
            }
     )
     
-    return(as.data.frame(data))
+    return(data)
 }
 
 # testing

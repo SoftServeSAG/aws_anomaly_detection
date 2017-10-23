@@ -45,7 +45,7 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
     }
     
     
-    return(as.data.frame(aggregated_data))
+    return(aggregated_data)
 }
 
 # testing
