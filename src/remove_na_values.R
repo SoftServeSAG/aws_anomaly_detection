@@ -6,7 +6,7 @@ require(dplyr)
 #Data Preprocessing Functionality: Data Imputation and Denoising #1
 
 remove_na_from_data <- function(data, type='zero'){
-    # Function replace NA values on 0, mean,...
+    # Function replace NA values on 0, mean,... in time-seris data
     #
     # Input:
     # data - dataframe with time-series data
@@ -16,7 +16,7 @@ remove_na_from_data <- function(data, type='zero'){
     #       'mean' - replase NA to mean of all time series data)
     #
     # Output:
-    # data without NA values
+    # xts object with time-series data without NA values
     
     # Change type of input data to xts
     
@@ -41,7 +41,7 @@ remove_na_from_data <- function(data, type='zero'){
            }
     )
     
-    return(as.data.frame(data))
+    return(data)
 }
 
 # testing

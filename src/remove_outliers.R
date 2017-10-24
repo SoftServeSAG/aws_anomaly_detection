@@ -16,7 +16,7 @@ remove_outliers_from_data <- function(data, type='none', number=5){
     # number - count of sigma for non outliers interval
     #
     # Output:
-    # data without outliers
+    # xts object with time-series data without outliers
     
     # Change type of input data to xts
     
@@ -45,7 +45,7 @@ remove_outliers_from_data <- function(data, type='none', number=5){
            }
     )
     
-    return(as.data.frame(data))
+    return(data)
 }
 
 # testing

@@ -9,7 +9,7 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
     # Function aggregate data of time-series
     #
     # Input:
-    # data - dataframe with time-series data
+    # data - xts object with time-series data
     # type - type of method ('none' - without changes, 
     #       "seconds", for example "5 seconds", or "minutes", "hours", "days", "weeks", 
     #       "months", "quarters", and "years")
@@ -18,7 +18,7 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
     # quantile_percent - for "n% -quantile" aggregation function
     #
     # Output:
-    # aggregated data
+    # xts object with aggregated data
     
     if (type == 'none'){
         return(data)    
@@ -45,7 +45,7 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
     }
     
     
-    return(as.data.frame(aggregated_data))
+    return(aggregated_data)
 }
 
 # testing
