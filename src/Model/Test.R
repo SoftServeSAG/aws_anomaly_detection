@@ -1,14 +1,21 @@
-source("Model/aggregate_thresholds.R")
+source("Model/aggregate.thresholds.R")
 source("Model/app_timeseries.R")
 source("Model/dynamicThreshold.model.R")
 source("Model/findPeriod_ssa.R")
 source("Model/find_Thresh.R")
 source("Model/find_Thresh_set.R")
 source("Model/plotfirstPeriods.R")
+source("Model/plotThresholdsAnomalies.R")
+source("Model/timeseries_prepare.R")
+source("Model/find.anomalies.R")
+
 
 source("Preprocessing.R")
 library(plotly)
 library(Rssa)
+
+library(parallel)
+
 
 
 HH_data <- readRDS("data/household_power_consumption_datatime.rds")
@@ -18,39 +25,85 @@ data <- xts(x = HH_data$Voltage, order.by = HH_data$datetime)
 
 #remove NA
 data_na.rm=remove_na_from_data(data, type = "mean")
-ts_type="hours"
+
+#aggregation
+ts_type="days"
 ts_val=1
-#remove NA
 data.agg=aggregation_data(data_na.rm, type = paste(ts_val, ts_type), func_aggregate = 'median', quantile_percent = .5)
 
-#prepare dataframe
-names(data.agg)=c("values")
-data.agg=as.data.frame(data.agg)
-data.agg$time=as.POSIXct(rownames(data.agg), "GMT",format = "%Y-%m-%d %H:%M:%S")
+
+#prepare data for model traioning
+ts_train = timeseries_train(data.agg = data.agg, ts_type = ts_type, ts_val = ts_val)
+
+#prepare data for model applying
+ts_test = timeseries_test(data.agg = data.agg, ts_type = ts_type, ts_val = ts_val)
 
 #plot timeseries
-data.agg %>% plot_ly(x=~time, y=~values) %>% add_lines()
-
-#extract periods form timeseries
-periods=findPeriod_ssa(data.agg$values)
-
+ts_train$time_series$ts %>% plot_ly(x=~time, y=~values) %>% add_lines()
 #plot timeseries with extracted periods
-plotfirstPeriods(data = data.agg, periods = periods, N = 100)
+plotfirstPeriods(data = ts_train$time_series$ts, periods = ts_train$periods, N = 100)
 
-#time series reconstruction
-data.reconstructed=app_timeseries(data.agg$values, dsigma = 0.1)
 
-# DT model training
-model.DT<-dynamicThreshold.model(metric = data.agg$values,
-                metric_reconstructed = data.reconstructed,
-                period = sort(periods),
-                prob_th = 0.9,
-                prob_agg = 0.5,
-                k = 0.1,
-                similar = 0.25,
-                corrected_by = c(1, 1, 1,1,1,1),
-                identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
 
-# plot timeseries with anomalies
-plotfirstPeriods(data = data.agg, periods = periods, anomalies = model.DT$anomalies)
+
+model.DT<-dynamicThreshold.model(ts_train$time_series,
+                                 period = sort(ts_train$periods),
+                                 agg_th = 0.75, # the higher the more tolerant
+                                 local_trend = 0.5, # local trend is determined based on quantile of corresponded preriods
+                                 k = 0.1,
+                                 similar = 0.1, #significance in the divergence between thresholds of the near diapasons
+                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
+
+RES=find.anomalies(data = ts_test$ts, ts_par = ts_test$ts_par, 
+                   ad.model = model.DT$model, coef=0.1, scale=2)
+plotTSThresholdsAnomalies(data=ts_test$ts, thresholds = RES$th_plot, anomalies = RES$anomalies)
+
+
+RES=find.anomalies(data = ts_test$ts[500:1300,], ts_par = ts_test$ts_par, ad.model = model.DT$model,  coef=0.1, scale=1.2)
+plotTSThresholdsAnomalies(data=ts_test$ts[500:1300,], thresholds = RES$th_plot, anomalies = RES$anomalies)
+
+
+
+# High sencetivity
+model.DT<-dynamicThreshold.model(ts_train$time_series,
+                                 period = sort(ts_train$periods),
+                                 agg_th = 0.5, # the higher the more tolerant
+                                 local_trend = 0.1, # local trend is determined based on quantile of corresponded preriods
+                                 k = 0.1,
+                                 similar = 0.01, #significance in the divergence between thresholds of the near diapasons
+                                 
+                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
+
+# Medium sencetivity
+model.DT<-dynamicThreshold.model(ts_train$time_series,
+                                 period = sort(ts_train$periods),
+                                 agg_th = 0.6, # the higher the more tolerant
+                                 local_trend = 0.3, # local trend is determined based on quantile of corresponded preriods
+                                 k = 0.1,
+                                 similar = 0.1, #significance in the divergence between thresholds of the near diapasons
+                                 
+                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
+
+
+# Low sencetivity
+model.DT<-dynamicThreshold.model(ts_train$time_series,
+                                 period = sort(ts_train$periods),
+                                 agg_th = 0.8, # the higher the more tolerant
+                                 local_trend = 0.5, # local trend is determined based on quantile of corresponded preriods
+                                 k = 0.01,
+                                 similar = 0.3, #significance in the divergence between thresholds of the near diapasons
+                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
+
+RES=find.anomalies(data = ts_test$ts[700:1400,], 
+                   ts_par = ts_test$ts_par, 
+                   ad.model = model.DT$model, 
+                   coef=0, scale=1)
+
+plotTSThresholdsAnomalies(data = ts_test$ts[700:1400,], 
+                          thresholds = RES$th_plot, 
+                          anomalies = RES$anomalies)
 

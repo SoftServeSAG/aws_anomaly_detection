@@ -7,7 +7,7 @@ findPeriod_ssa <- function (data, dsigma=0.4) {
   # dsigma - minimal significance of eigenvectors 
   #
   # Output:
-  # set of unique periods
+  # set of unique periods and ssa object
 
         SSA= ssa(data, L = round(length(data) / 2))
         sigma=SSA$sigma[2:nsigma(SSA)]
@@ -17,7 +17,7 @@ findPeriod_ssa <- function (data, dsigma=0.4) {
         periods = round(per_estimate$periods[per_estimate$periods>0 & !is.infinite(per_estimate$periods)])
         periods = unique(periods)
        
-        return(periods)
+        return(list(periods=periods, ssa=SSA))
 }
 
 # test
@@ -43,8 +43,8 @@ findPeriod_ssa <- function (data, dsigma=0.4) {
 # data.agg %>% plot_ly(x=~time, y=~values) %>% add_lines()
 # 
 # #extract periods form timeseries
-# periods=findPeriod_ssa(data.agg$values)
+# periods_ssa=findPeriod_ssa(data.agg$values)
 # 
 #plot timeseries with extracted periods
 
-#plotfirstPeriods(data = data.agg, periods = periods, N = 100)
+#plotfirstPeriods(data = data.agg, periods = periods_ssa$periods, N = 100)
