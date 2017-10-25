@@ -142,9 +142,9 @@ dynamicThreshold.model <- function(time_series,
                    ts_val=time_series$ts_val)
         
       # Detect Anomalies
-        results=find.anomalies(data = data, ad.model = ad.model)
+        
 
         options(warn=0)
  
-        return(list(model=ad.model, anomalies=results$anomalies, th_plot = results$th_plot))
+        return(ad.model)
 }

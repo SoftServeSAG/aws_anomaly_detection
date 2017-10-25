@@ -1,9 +1,9 @@
-find.anomalies <- function (data, ts_par = NULL,
+find.anomalies <- function (ts.agg,
                             ad.model, coef = 0, scale=1)
   #Detect anomalies based on developed AD model
   #
-  # data - timeseries data in dataframe format - (time - Posix format, values - metric)
-  # ts_par - (default null) - aggregation parameters of initial time series
+  # ts.agg - timeseries data in xts fornat with aggregation parameters 
+  # data.agg, ts_type, ts_val
   # ad.model - AD model :
   # list( thresholds - thresolds for shortest period, 
   #       levels - local trends based on all periods,  
@@ -11,7 +11,8 @@ find.anomalies <- function (data, ts_par = NULL,
   #       max = maximal observed value in train set , 
   #       initial_time -  from train set, 
   #       ts_type - aggregation units,
-  #       ts_val - aggregation step)
+  #       ts_val - aggregation step,
+  #       type_th - thresholds type - Low or High)
   #
   # coef - (default = 0) additive threshold correction coefficient 
   # scale - (default 1) threshold scale coefficient 
@@ -23,6 +24,16 @@ find.anomalies <- function (data, ts_par = NULL,
 {
  
   options(warn=-1)
+  
+  ts_data = timeseries_test(data.agg = ts.agg$data.agg, ts_type = ts.agg$ts_type, ts_val = ts.agg$ts_val)
+  data=ts_data$ts
+  ts_par=list(ts_type = ts.agg$ts_type, ts_val = ts.agg$ts_val)
+  
+  if (!is.null(ad.model$ts_corr))
+  {
+    data$values = 2*ad.model$ts_corr - data$values
+    coef = -coef
+  }
   
   if (!is.null(ts_par))
   {
@@ -92,6 +103,11 @@ find.anomalies <- function (data, ts_par = NULL,
   
   options(warn=0)
   anomalies = which(anomaly == TRUE)
+  
+  if (!is.null(ad.model$ts_corr))
+  {
+    dts$Threshold = 2*ad.model$ts_corr - dts$Threshold
+  }
   
   return(list(anomalies=anomalies, th_plot = dts))
 }

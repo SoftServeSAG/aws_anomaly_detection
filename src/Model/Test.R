@@ -35,6 +35,8 @@ ts_type="days"
 ts_val=1
 data.agg=aggregation_data(data_na.rm, type = paste(ts_val, ts_type), func_aggregate = 'median', quantile_percent = .5)
 
+ts.agg=list(data.agg=data.agg, ts_type=ts_type, ts_val=ts_val)
+
 
 #prepare data for model traioning
 ts_train = timeseries_train(data.agg = data.agg, ts_type = ts_type, ts_val = ts_val)
@@ -56,7 +58,7 @@ model.DT<-dynamicThreshold.model(ts_train$time_series,
                                  local_trend = 0.5, # local trend is determined based on quantile of corresponded preriods
                                  k = 0.1,
                                  similar = 0.1, #significance in the divergence between thresholds of the near diapasons
-                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+                                 identical_thresholds = rep(FALSE, length(ts_train$periods)))
 plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
 
 RES=find.anomalies(data = ts_test$ts, ts_par = ts_test$ts_par, 
@@ -77,7 +79,7 @@ model.DT<-dynamicThreshold.model(ts_train$time_series,
                                  k = 0.1,
                                  similar = 0.01, #significance in the divergence between thresholds of the near diapasons
                                  
-                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+                                 identical_thresholds = rep(FALSE, length(ts_train$periods)))
 plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
 
 # Medium sencetivity
@@ -88,7 +90,7 @@ model.DT<-dynamicThreshold.model(ts_train$time_series,
                                  k = 0.1,
                                  similar = 0.1, #significance in the divergence between thresholds of the near diapasons
                                  
-                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+                                 identical_thresholds = rep(FALSE, length(ts_train$periods)))
 plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
 
 
@@ -99,7 +101,7 @@ model.DT<-dynamicThreshold.model(ts_train$time_series,
                                  local_trend = 0.5, # local trend is determined based on quantile of corresponded preriods
                                  k = 0.01,
                                  similar = 0.3, #significance in the divergence between thresholds of the near diapasons
-                                 identical_thresholds = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+                                 identical_thresholds = rep(FALSE, length(ts_train$periods)))
 plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = model.DT$th_plot, anomalies = model.DT$anomalies)
 
 RES=find.anomalies(data = ts_test$ts[700:1400,], 
@@ -110,4 +112,115 @@ RES=find.anomalies(data = ts_test$ts[700:1400,],
 plotTSThresholdsAnomalies(data = ts_test$ts[700:1400,], 
                           thresholds = RES$th_plot, 
                           anomalies = RES$anomalies)
+
+
+
+#==== Smart Train ====================================================================================================
+
+#++++ Simple + Medium ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+my.model=dynamicThreshold.smart_train(ts_train = ts_train, 
+                                      train.params = list(mode = 'simple', sensitivity = 'Medium'))
+plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = my.model$th_plot, anomalies = my.model$anomalies)
+
+
+#++++ Simple + Medium + Correction ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+RES=find.anomalies(data = ts_train$time_series$ts, 
+                   ts_par = ts_train$time_seriestest$ts_par, 
+                   ad.model = my.model$model, 
+                   coef=0.01, scale=2)
+
+plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = RES$th_plot, anomalies = RES$anomalies)
+
+
+#++++ Expert  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+my.model=dynamicThreshold.smart_train(ts_train = ts_train, 
+                                      train.params = list
+                                      (
+                                        mode = 'expert', 
+                                        params = list
+                                        (
+                                          agg_th = 0.75,
+                                          local_trend = 0.5,
+                                          similar = 0.1
+                                        )
+                                        ))
+
+my.model_h=dynamicThreshold.smart_train(ts.agg  = ts.agg, 
+                                      type_th = "high",
+                                      train.params = list
+                                      (
+                                        mode = 'expert', 
+                                        params = list
+                                        (
+                                          agg_th = 0.75,
+                                          local_trend = 0.5,
+                                          similar = 0.1
+                                        )
+                                      ))
+
+my.model_l=dynamicThreshold.smart_train(ts.agg  = ts.agg, 
+                                        type_th = "low",
+                                        train.params = list
+                                        (
+                                          mode = 'expert', 
+                                          params = list
+                                          (
+                                            agg_th = 0.75,
+                                            local_trend = 0.5,
+                                            similar = 0.1
+                                          )
+                                        ))
+
+plotTSThresholdsAnomalies(data=my.model_h$timeseries$ts, 
+                          thresholds = my.model_h$ad_results$th_plot, 
+                          anomalies = my.model_h$ad_results$anomalies,
+                          type_th=my.model_h$model$type_th)
+
+plotTSThresholdsAnomalies(data=my.model_l$timeseries$ts, 
+                          thresholds = my.model_l$ad_results$th_plot, 
+                          anomalies = my.model_l$ad_results$anomalies,
+                          type_th=my.model_l$model$type_th)
+
+
+
+RES1=find.anomalies(data = my.model_h$timeseries$ts, 
+                   ts_par = my.model_h$timeseries$ts_par, 
+                   ad.model = my.model_h$model, 
+                   coef=0.01, scale=2)
+
+plotTSThresholdsAnomalies(data=my.model_h$timeseries$ts, 
+                          thresholds = RES1$th_plot, 
+                          anomalies = RES1$anomalies,
+                          type_th=my.model_h$model$type_th)
+
+
+RES2=find.anomalies(data = my.model_l$timeseries$ts, 
+                   ts_par = my.model_l$timeseries$ts_par, 
+                   ad.model = my.model_l$model, 
+                   coef=-0.4, scale=3)
+
+plotTSThresholdsAnomalies(data=my.model_l$timeseries$ts, 
+                          thresholds = RES2$th_plot, 
+                          anomalies = RES2$anomalies,
+                          type_th=my.model_l$model$type_th)
+
+
+plotTSThresholdsAnomalies_both(data=my.model_l$timeseries$ts, 
+                          thresholds = list(RES2$th_plot, RES1$th_plot), 
+                          anomalies = c(RES2$anomalies, RES1$anomalies))
+
+
+
+#++++ Expert + Correction ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+RES=find.anomalies(data = ts_train$time_series$ts, 
+                   ts_par = ts_train$time_seriestest$ts_par, 
+                   ad.model = my.model$model, 
+                   coef=0.01, scale=2)
+
+plotTSThresholdsAnomalies(data=ts_train$time_series$ts, thresholds = RES$th_plot, anomalies = RES$anomalies)
+
+#=====================================================================================================================
+
 
