@@ -73,6 +73,10 @@ plotTSThresholdsAnomalies(ts.agg=my.model.l$raw_timeseries,
                           anomalies = my.model.l$ad_results$anomalies,
                           type_th=my.model.l$model$type_th)
 
+xts.vis = TSThresholdsAnomaliesVis(ts.agg=my.model.l$raw_timeseries, 
+                          thresholds = my.model.l$ad_results$th_plot, 
+                          anomalies = my.model.l$ad_results$anomalies)
+
 
 #==== Apply ====================================================================================================
 
@@ -88,6 +92,11 @@ RES.l=find.anomalies(ts.agg  = ts.agg.test,
 plotTSThresholdsAnomalies_both(ts.agg = ts.agg.test, 
                           thresholds = list(RES.l$th_plot, RES.h$th_plot),
                           anomalies = c(RES.l$anomalies,RES.h$anomalies))
+
+xts.vis = TSThresholdsAnomaliesVis_both(ts.agg = ts.agg.test, 
+                                   thresholds = list(RES.l$th_plot, RES.h$th_plot),
+                                   anomalies = c(RES.l$anomalies,RES.h$anomalies))
+
 
 
 #==== Train and Apply Two Sides  ====================================================================================================
