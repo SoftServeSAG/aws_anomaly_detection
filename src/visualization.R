@@ -48,10 +48,17 @@ plot_time_series <- function(data, treshhold_type='all', window_size=0.75){
         
     }else if ((dim(data)[2] == 3) & (treshhold_type == 'high')){
 
-        plot_data <- plot_data %>%  
-            dySeries("thresolds", label = "High Thresolds", color='blue', fillGraph = T) %>% 
-            dySeries("values", label = "Historical Data",
-                     color='blue') %>% 
+        if (min(data$values) < 0){
+            data$min_values <- min(data$values) * 1.01
+        } else{
+            data$min_values <- 0
+        }
+        plot_data <- dygraph(data, main = "Time series", 
+                             ylab = "Values",
+                             xlab = "Time") %>% 
+            dySeries("thresolds", label = "High Thresolds", color='blue') %>% 
+            dySeries(c("min_values","values","thresolds"), label = "Historical Data",
+                     color='blue') %>%   
             dySeries("anomalies", label = "Anomalies", color = 'red', drawPoints = TRUE, pointSize = 3,
                      strokeBorderColor='blue', strokeWidth=0)
         
