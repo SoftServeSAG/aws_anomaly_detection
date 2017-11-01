@@ -1,80 +1,68 @@
 library(shiny)
+library(dygraphs)
+source("../visualization.R")
 
 shinyServer(
-    function(input, output) {
+    function(input, output, session) {
         
         # data placeholders
         data <- reactiveValues(full = NULL, series = NULL)
         
-        # First (Load) page content
-        # Load table with uploaded data
+        # FIRST (LOAD) PAGE CONTENT
+        # read uploaded file and render contents into a table
         output$UserData <- DT::renderDataTable({
             req(input$LocalFile)
             data$full <- read.csv(input$LocalFile$datapath, 
                                   header = input$FileHasHeader, 
                                   sep = input$FileSeparator, 
-                                  quote = input$FileQuotation)
+                                  quote = input$FileQuotation,
+                                  stringsAsFactors = F)
             return(data$full)
         }, 
         selection = 'none',
         options = list(dom='tsp'))
         
-        # Load dynamic controls
-        output$TimeScaleHr <- renderPrint({
-            if(!is.null(data$full)) {
-                h3("Time Scale")
-            }
-        })
+        # store 'data loaded' flag in outputs for dynamic UI
+        output$UserDataLoaded <- reactive({!is.null(data$full)})
+        outputOptions(output, "UserDataLoaded", suspendWhenHidden = FALSE)
         
         output$DateTimeVarName <- renderUI({
-            if(!is.null(data$full)) {
-                fluidRow(
-                    column(6,
-                        tags$div("Column name", style = "padding: 5px;font-size: 110%;")
-                    ),
-                    column(6,
-                           selectInput("DateTimeVar", NULL, choices = names(data$full))
-                    )
-                )
-            }
-        })
-        
-        output$DateTimeFmt <- renderUI({
-            if(!is.null(data$full)) {
-                fluidRow(
-                    column(6,
-                           tags$div("Datetime format", style = "padding: 5px;font-size: 110%;")
-                    ),
-                    column(6,
-                           textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS")
-                    )
-                )
-            }
-        })
-        
-        output$TargetVarHr <- renderPrint({
-            if(!is.null(data$full)) {
-                h3("Target variable")
-            }
+            selectizeInput("DateTimeVar", NULL, choices = names(data$full), 
+                           options = list(
+                               placeholder = "Select",
+                               onInitialize = I('function() { this.setValue(""); }')
+                           ))
         })
         
         output$TargetVarName <- renderUI({
-            if(!is.null(data$full)) {
-                fluidRow(
-                    column(6,
-                           tags$div("Column name", style = "padding: 5px;font-size: 110%;")
-                    ),
-                    column(6,
-                           selectInput("TargetVar", NULL, choices = names(data$full[sapply(data$full, is.numeric)]))
-                    )
-                )
+            selectizeInput("TargetVar", NULL, choices = names(data$full[sapply(data$full, is.numeric)]),
+                           options = list(
+                               placeholder = "Select",
+                               onInitialize = I('function() { this.setValue(""); }')
+                           ))
+        })
+        
+        # process next button click (slice dataframe into series and move to the Prepare stage)
+        observeEvent(input$Next1Btn, {
+            data$series <- data$full[, c(input$DateTimeVar, input$TargetVar)]
+            data$series[,input$DateTimeVar] <- strptime(data$series[,input$DateTimeVar], format=input$DateTimeFmt) %>% as.POSIXct() 
+            data$series <- xts(data$series[,2], order.by=data$series[,1])
+            updateTabsetPanel(session, "MNB", selected = "Prepare")
+        })
+        
+        observeEvent(input$DateTimeVar, {
+            if(input$DateTimeVar != "" && input$TargetVar != "") {
+                shinyjs::enable("Next1Btn")
             }
         })
         
-        output$Next1Button <- renderUI({
-            if(!is.null(data$full)) {
-                actionButton("Next1Btn", "Next", width = '100%')
+        observeEvent(input$TargetVar, {
+            if(input$DateTimeVar != "" && input$TargetVar != "") {
+                shinyjs::enable("Next1Btn")
             }
         })
+        
+        # SECOND (PREPARE) PAGE CONTENT
+        output$OriginalSeries <- renderDygraph(plot_time_series(data$series))
     }
 )

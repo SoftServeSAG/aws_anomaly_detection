@@ -1,12 +1,13 @@
 library(shiny)
 library(DT)
+library(shinyBS)
+library(dygraphs)
 
 shinyUI(
     fluidPage(
-        navbarPage(
-            "Anomaly Detection",
-            tabPanel(
-                "Load",
+        shinyjs::useShinyjs(),
+        navbarPage("Anomaly Detection", id = "MNB",
+            tabPanel("Load",
                 fluidPage(
                     fluidRow(
                         column(3,
@@ -30,34 +31,125 @@ shinyUI(
                         column(9,
                                h2("Preview"),
                                DT::dataTableOutput('UserData'),
-                               fluidRow(
-                                   column(3,
-                                          uiOutput("TimeScaleHr"),
-                                          uiOutput("DateTimeVarName"),
-                                          uiOutput("DateTimeFmt")
-                                   ),
-                                   column(3,
-                                          uiOutput("TargetVarHr"),
-                                          uiOutput("TargetVarName")
+                               conditionalPanel(
+                                   condition = "output.UserDataLoaded",
+                                   fluidRow(
+                                       column(3,
+                                              h3("Time Scale"),
+                                              fluidRow(
+                                                  column(6,
+                                                         div("Column name", style = "padding: 5px;font-size: 110%;")
+                                                  ),
+                                                  column(6,
+                                                         uiOutput("DateTimeVarName")
+                                                  )
+                                              ),
+                                              fluidRow(
+                                                  column(6,
+                                                         div("Datetime format", style = "padding: 5px;font-size: 110%;")
+                                                  ),
+                                                  column(6,
+                                                         textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
+                                                         bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")
+                                                  )
+                                              )
+                                       ),
+                                       column(3,
+                                              h3("Target variable"),
+                                              fluidRow(
+                                                  # column(6,
+                                                  #        #tags$div("Column name", style = "padding: 5px;font-size: 110%;")
+                                                  # ),
+                                                  column(6,# offset = 6,
+                                                         uiOutput("TargetVarName")
+                                                  )
+                                              )
+                                       )
                                    )
                                )
-                        ),
-                        fluidRow(
-                            column(1, offset = 11,
-                                   uiOutput("Next1Button")
-                            )
+                        )
+                    )
+                ),
+                fluidRow(
+                    conditionalPanel(
+                        condition = "output.UserDataLoaded",
+                        column(1, offset = 11,
+                               shinyjs::disabled(actionButton("Next1Btn", "Next", width = '100%'))
                         )
                     )
                 )
             ),
             tabPanel(
-                "Prepare"
+                "Prepare",
+                fluidPage(
+                    fluidRow(
+                        column(3,
+                            h3("Transformation"),
+                            hr(),
+                            fluidRow(
+                                column(6,
+                                       div(strong("Missing values"), style = "padding: 5px;font-size: 110%;")
+                                ),
+                                column(6,
+                                       selectizeInput("MissValTreatment", NULL, choices = c('Zero'='zero', 'Linear'='linear', 'Mean'='mean'),
+                                                      options = list(
+                                                          placeholder = "None",
+                                                          onInitialize = I('function() { this.setValue(""); }')
+                                                      ))
+                                )
+                            ),
+                            hr(),
+                            fluidRow(
+                                column(6,
+                                       div(strong("Outliers Detection"), style = "padding: 5px;font-size: 110%;")
+                                ),
+                                column(6,
+                                       selectizeInput("OutliersTreatment", NULL, choices = c('Normal'='normal', 'Diff'='diff'),
+                                                      options = list(
+                                                          placeholder = "None",
+                                                          onInitialize = I('function() { this.setValue(""); }')
+                                                      ))
+                                )
+                            ),
+                            hr(),
+                            fluidRow(
+                                column(6,
+                                       div(strong("Noise Reduction"), style = "padding: 5px;font-size: 110%;")
+                                ),
+                                column(6,
+                                       selectizeInput("NoiseTreatment", NULL, choices = c('Gaussian'='gaussian', 'SMA'='sma','EMA'='ema', 'DEMA'='dema','WMA'='wma'),
+                                                      options = list(
+                                                          placeholder = "None",
+                                                          onInitialize = I('function() { this.setValue(""); }')
+                                                      ))
+                                )
+                            ),
+                            hr(),
+                            fluidRow(
+                                h3("Aggregation"),
+                                br(),
+                                radioButtons("AggMethod", NULL, choices = c('Sum'='sum', 'Min'='min', 'Mean'='mean', 'Median'='median', 'Max'='max'))
+                            ),
+                            fluidRow(
+                                column(4, offset=4,
+                                       actionButton("TransformApplyBtn", "Apply", width = '100%')
+                                )
+                            )
+                        ),
+                        column(9,
+                            h3("Original"),
+                            dygraphOutput("OriginalSeries")
+                        )
+                    ),
+                    fluidRow(
+                        column(1, offset=11,
+                               actionButton("Next2Btn", "Next", width = '100%')
+                        )
+                    )
+                )
             ),
             tabPanel(
                 "Model"
-            ),
-            tabPanel(
-                "Evaluate"
             )
         )
     )
