@@ -51,7 +51,7 @@ plot_time_series <- function(data, treshhold_type='all', window_size=0.75){
         if (min(data$values) < 0){
             data$min_values <- min(data$values) * 1.01
         } else{
-            data$min_values <- 0
+            data$min_values <- min(data$values) * 0.97
         }
         plot_data <- dygraph(data, main = "Time series", 
                              ylab = "Values",
@@ -91,96 +91,97 @@ plot_time_series <- function(data, treshhold_type='all', window_size=0.75){
                                dateWindow = window_data))
 }
 
-# # testing 1 column
-# 
-# harMet_15Min <- read.csv(
-#     file="data/HARV/FisherTower-Met/hf001-10-15min-m.csv",
-#     stringsAsFactors = FALSE) %>% mutate(datetime =as.POSIXct(datetime,format="%Y-%m-%dT%H:%M") ) %>%
-#     na.omit(datetime) %>% select(datetime, airt)
-# 
-# head(harMet_15Min)
-# 
-# data <- xts(x = harMet_15Min$airt, order.by = harMet_15Min$datetime) %>%
-#     aggregation_data(type = '1 days', func_aggregate = 'median')
-# 
-# plot_time_series(data)
-# 
-# # testing 4 column
-# 
-# HH_data <- readRDS("data/household_power_consumption_datatime.rds")
-# 
-# #create time series
-# data <- xts(x = HH_data$Voltage, order.by = HH_data$datetime)
-# 
-# #remove NA
-# data_na.rm=remove_na_from_data(data, type = "mean")
-# 
-# #aggregation
-# ts_type="days"
-# ts_val=1
-# data.agg=aggregation_data(data_na.rm, type = paste(ts_val, ts_type), func_aggregate = 'median', quantile_percent = .5)
-# 
-# 
-# 
-# data.agg.train = data.agg[1:1200]
-# data.agg.test = data.agg[1201:length(data.agg)]
-# 
-# 
-# # Time Series for model Training and Applying 
-# 
-# ts.agg.train=list(data.agg=data.agg.train, ts_type=ts_type, ts_val=ts_val)
-# ts.agg.test=list(data.agg=data.agg.test, ts_type=ts_type, ts_val=ts_val)
-# ts.agg=list(data.agg=data.agg, ts_type=ts_type, ts_val=ts_val)
-# 
-# 
-# #==== Train ====================================================================================================
-# 
-# #++++ Simple + Medium ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# 
-# my.model.h=dynamicThreshold.smart_train(ts.agg  = ts.agg.train,
-#                                         type_th = "high",
-#                                         train.params = list(mode = 'simple', sensitivity = 'Medium'))
-# 
-# my.model.l=dynamicThreshold.smart_train(ts.agg  = ts.agg.train,
-#                                         type_th = "low",
-#                                         train.params = list(mode = 'simple', sensitivity = 'Low'))
-# 
-# #==== Apply ====================================================================================================
-# 
-# 
-# RES.h=find.anomalies(ts.agg  = ts.agg.test, 
-#                      ad.model = my.model.h$model, 
-#                      coef=0.0, scale=1)
-# 
-# RES.l=find.anomalies(ts.agg  = ts.agg.test, 
-#                      ad.model = my.model.l$model, 
-#                      coef=0.4, scale=1.2)
-# 
-# xts.vis = TSThresholdsAnomaliesVis_both(ts.agg = ts.agg.test, 
-#                                         thresholds = list(RES.l$th_plot, RES.h$th_plot),
-#                                         anomalies = c(RES.l$anomalies,RES.h$anomalies))
-# plot_time_series(xts.vis)
-# 
-# 
-# #testing 3 columns with High or Low treshholds
-# 
-# my.model.h=dynamicThreshold.smart_train(ts.agg  = ts.agg.train, 
-#                                         type_th = "high", 
-#                                         train.params = list(mode = 'simple', sensitivity = 'Medium'))
-# 
-# my.model.l=dynamicThreshold.smart_train(ts.agg  = ts.agg.train, 
-#                                         type_th = "low", 
-#                                         train.params = list(mode = 'simple', sensitivity = 'Low'))
-# 
-# 
-# xts.vis = TSThresholdsAnomaliesVis(ts.agg=my.model.h$raw_timeseries, 
-#                                    thresholds = my.model.h$ad_results$th_plot, 
-#                                    anomalies = my.model.h$ad_results$anomalies)
-# 
-# plot_time_series(xts.vis, treshhold_type = 'high')
-# 
-# xts.vis = TSThresholdsAnomaliesVis(ts.agg=my.model.l$raw_timeseries, 
-#                                    thresholds = my.model.l$ad_results$th_plot, 
-#                                    anomalies = my.model.l$ad_results$anomalies)
-# 
-# plot_time_series(xts.vis, treshhold_type = 'low')
+# testing 1 column
+
+harMet_15Min <- read.csv(
+    file="data/HARV/FisherTower-Met/hf001-10-15min-m.csv",
+    stringsAsFactors = FALSE) %>% mutate(datetime =as.POSIXct(datetime,format="%Y-%m-%dT%H:%M") ) %>%
+    na.omit(datetime) %>% select(datetime, airt)
+
+head(harMet_15Min)
+
+data <- xts(x = harMet_15Min$airt, order.by = harMet_15Min$datetime) %>%
+    aggregation_data(type = '1 days', func_aggregate = 'median')
+
+plot_time_series(data)
+
+# testing 4 column
+
+HH_data <- readRDS("data/household_power_consumption_datatime.rds")
+
+#create time series
+data <- xts(x = HH_data$Voltage, order.by = HH_data$datetime)
+
+#remove NA
+data_na.rm=remove_na_from_data(data, type = "mean")
+
+#aggregation
+ts_type="days"
+ts_val=1
+data.agg=aggregation_data(data_na.rm, type = paste(ts_val, ts_type), func_aggregate = 'median', quantile_percent = .5)
+
+
+
+data.agg.train = data.agg[1:1200]
+data.agg.test = data.agg[1201:length(data.agg)]
+
+
+# Time Series for model Training and Applying
+
+ts.agg.train=list(data.agg=data.agg.train, ts_type=ts_type, ts_val=ts_val)
+ts.agg.test=list(data.agg=data.agg.test, ts_type=ts_type, ts_val=ts_val)
+ts.agg=list(data.agg=data.agg, ts_type=ts_type, ts_val=ts_val)
+
+
+#==== Train ====================================================================================================
+
+#++++ Simple + Medium ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+my.model.h=dynamicThreshold.smart_train(ts.agg  = ts.agg.train,
+                                        type_th = "high",
+                                        train.params = list(mode = 'simple', sensitivity = 'Medium'))
+
+my.model.l=dynamicThreshold.smart_train(ts.agg  = ts.agg.train,
+                                        type_th = "low",
+                                        train.params = list(mode = 'simple', sensitivity = 'Low'))
+
+#==== Apply ====================================================================================================
+
+
+RES.h=find.anomalies(ts.agg  = ts.agg.test,
+                     ad.model = my.model.h$model,
+                     coef=0.0, scale=1)
+
+RES.l=find.anomalies(ts.agg  = ts.agg.test,
+                     ad.model = my.model.l$model,
+                     coef=0.4, scale=1.2)
+
+xts.vis = TSThresholdsAnomaliesVis_both(ts.agg = ts.agg.test,
+                                        thresholds = list(RES.l$th_plot, RES.h$th_plot),
+                                        anomalies = c(RES.l$anomalies,RES.h$anomalies))
+plot_time_series(xts.vis)
+
+
+#testing 3 columns with High or Low treshholds
+
+my.model.h=dynamicThreshold.smart_train(ts.agg  = ts.agg.train,
+                                        type_th = "high",
+                                        train.params = list(mode = 'simple', sensitivity = 'Medium'))
+
+my.model.l=dynamicThreshold.smart_train(ts.agg  = ts.agg.train,
+                                        type_th = "low",
+                                        train.params = list(mode = 'simple', sensitivity = 'Low'))
+
+
+xts.vis = TSThresholdsAnomaliesVis(ts.agg=my.model.h$raw_timeseries,
+                                   thresholds = my.model.h$ad_results$th_plot,
+                                   anomalies = my.model.h$ad_results$anomalies)
+
+plot_time_series(xts.vis, treshhold_type = 'high')
+
+xts.vis = TSThresholdsAnomaliesVis(ts.agg=my.model.l$raw_timeseries,
+                                   thresholds = my.model.l$ad_results$th_plot,
+                                   anomalies = my.model.l$ad_results$anomalies)
+
+plot_time_series(xts.vis, treshhold_type = 'low')
+
