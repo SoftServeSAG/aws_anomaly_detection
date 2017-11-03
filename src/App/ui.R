@@ -124,21 +124,34 @@ shinyUI(
                                                       ))
                                 )
                             ),
+                            hr(), hr(),
+                            h3("Aggregation"),
                             hr(),
-                            fluidRow(
-                                h3("Aggregation"),
-                                br(),
-                                radioButtons("AggMethod", NULL, choices = c('Sum'='sum', 'Min'='min', 'Mean'='mean', 'Median'='median', 'Max'='max'))
+                            fluidRow( # TODO: unfinished
+                                column(6,
+                                       div(strong("Function"), style = "padding: 5px;font-size: 110%;")
+                                ),
+                                column(6,
+                                       selectizeInput("AggFunction", NULL, choices = c('Sum'='sum', 'Min'='min', 'Avg'='mean', 'Median'='median', 'Max'='max'),
+                                                      options = list(
+                                                          placeholder = "None",
+                                                          onInitialize = I('function() { this.setValue(""); }')
+                                                      ))
+                                )
                             ),
                             fluidRow(
                                 column(4, offset=4,
-                                       actionButton("TransformApplyBtn", "Apply", width = '100%')
+                                       actionButton("ApplyTsfBtn", "Apply", width = '100%')
                                 )
                             )
                         ),
                         column(9,
-                            h3("Original"),
-                            dygraphOutput("OriginalSeries")
+                            wellPanel(id="PrepareResPanel", style = "overflow-y:scroll;height:80%;", #TODO: figure out height options
+                                      h3("Original"),
+                                      dygraphOutput("OriginalSeries"),
+                                      br(),
+                                      tags$div(id='tranform-res-placeholder')
+                            )
                         )
                     ),
                     fluidRow(

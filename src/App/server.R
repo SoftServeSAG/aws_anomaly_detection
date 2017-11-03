@@ -1,12 +1,16 @@
 library(shiny)
 library(dygraphs)
 source("../visualization.R")
+source("../remove_na_values.R")
+source("../remove_outliers.R")
+source("../denoise.R")
+source("../aggregation.R")
 
 shinyServer(
     function(input, output, session) {
         
         # data placeholders
-        data <- reactiveValues(full = NULL, series = NULL)
+        data <- reactiveValues(full = NULL, series = NULL, tsfPlotSelect = NULL)
         
         # FIRST (LOAD) PAGE CONTENT
         # read uploaded file and render contents into a table
@@ -50,19 +54,57 @@ shinyServer(
             updateTabsetPanel(session, "MNB", selected = "Prepare")
         })
         
-        observeEvent(input$DateTimeVar, {
-            if(input$DateTimeVar != "" && input$TargetVar != "") {
-                shinyjs::enable("Next1Btn")
-            }
-        })
-        
-        observeEvent(input$TargetVar, {
+        observeEvent(c(input$DateTimeVar, input$TargetVar), {
             if(input$DateTimeVar != "" && input$TargetVar != "") {
                 shinyjs::enable("Next1Btn")
             }
         })
         
         # SECOND (PREPARE) PAGE CONTENT
+        # plot original series
         output$OriginalSeries <- renderDygraph(plot_time_series(data$series))
+        
+        # add dynamic container to hold transformation results
+        observeEvent(input$ApplyTsfBtn, {
+            if(input$MissValTreatment != "") {data$tsfPlotSelect[["Missing"]] = "missing"}
+            if(input$OutliersTreatment != "") {data$tsfPlotSelect[["Outliers"]] = "outliers"}
+            if(input$NoiseTreatment != "") {data$tsfPlotSelect[["Noise"]] = "noise"}
+            
+            removeUI(selector = "#processed-results")
+            
+            if(length(data$tsfPlotSelect) > 0) {
+                insertUI(selector = "#tranform-res-placeholder",
+                         ui = div(id = "processed-results",
+                             h3("Processed"),
+                             hr(),
+                             radioButtons("TransformResSelector", NULL, inline = T, choices = data$tsfPlotSelect),
+                             fluidRow(
+                                 conditionalPanel(
+                                     condition = "input.TransformResSelector == 'missing'",
+                                     dygraphOutput("MissingProcessedSeries")
+                                 )
+                             ),
+                             fluidRow(
+                                 conditionalPanel(
+                                     condition = "input.TransformResSelector == 'outliers'",
+                                     dygraphOutput("OutliersProcessedSeries")
+                                 )
+                             ),
+                             fluidRow(
+                                 conditionalPanel(
+                                     condition = "input.TransformResSelector == 'noise'",
+                                     dygraphOutput("NoiseProcessedSeries")
+                                 )
+                             )
+                         )
+                )
+            }
+        })
+        
+        # TODO: Load animation needed
+        # TODO: do we need to save intermediate results?
+        output$MissingProcessedSeries <- renderDygraph(plot_time_series(remove_na_from_data(data$series, type = input$MissValTreatment)))
+        output$OutliersProcessedSeries <- renderDygraph(plot_time_series(remove_outliers_from_data(data$series, type = input$OutliersTreatment)))
+        output$NoiseProcessedSeries <- renderDygraph(plot_time_series(denoise_data(data$series, type = input$NoiseTreatment)))
     }
 )
