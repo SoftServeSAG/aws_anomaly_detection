@@ -29,9 +29,7 @@ dynamicThreshold.model <- function(time_series,
   #       initial_time -  from train set, 
   #       ts_type - aggregation units,
   #       ts_val - aggregation step)  
-  #
-  # anomalies - indexes of anomalies observations
-  # th_plot - thresholds representation for visualization
+
 
 {
   

@@ -26,7 +26,16 @@ dynamicThreshold.smart_train <- function (ts.agg,
 #                 params - for expert mode
 #
 # return : 
-#         model = DT Model, 
+#         model = DT Model:
+#                 list( thresholds - thresolds for shortest period, 
+#                       levels - local trends based on all periods,  
+#                       period = set of periods, 
+#                       max = maximal observed value in train set , 
+#                       initial_time -  from train set, 
+#                       ts_type - aggregation units,
+#                       ts_val - aggregation step,
+#                       ts_corr - correction for low-thresholds only,
+#                       type_th - thersholds type)  
 #         timeseries = time series in appropriate format for firther analysis, 
 #         raw_timeseries  - time series in initial (xts) format, 
 #         ad_results  - anomaly detection results
@@ -106,7 +115,6 @@ dynamicThreshold.smart_train <- function (ts.agg,
     
   results=find.anomalies(ts.agg, ad.model = model.DT)
   
-  #, anomalies=results$anomalies, th_plot = results$th_plot
   
   return(list(model = model.DT, timeseries = ts_test, raw_timeseries = ts.agg, ad_results = results))
   

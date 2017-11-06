@@ -19,7 +19,11 @@ find.anomalies <- function (ts.agg,
   # 
   # return:
   # anomalies - indexes of anomalies observations
-  # th_plot - thresholds representation for visualization
+  # expected - expected metric values for anomaly cases
+  # observed - observed  values for anomaly cases 
+  # significance - significance of anomalies
+  # type - type of anomalies
+  # thresholds - thresholds representation for visualization
   
 {
  
@@ -104,10 +108,20 @@ find.anomalies <- function (ts.agg,
   options(warn=0)
   anomalies = which(anomaly == TRUE)
   
+  expected_val = a[anomalies]
+  observed_val = metric[anomalies]
+  
+  metr_diff = (metric - a)[anomalies]
+  #signif = cut(metr_diff, breaks=quantile(metr_diff, seq(0,1,1/3)), labels = c("Low", "Medium", "High"), include.lowest = T)
+  signif = cut(metr_diff, breaks=3, labels = c("Low", "Medium", "High"), include.lowest = T)
+  
   if (!is.null(ad.model$ts_corr))
   {
     dts$Threshold = 2*ad.model$ts_corr - dts$Threshold
+    expected_val = 2*ad.model$ts_corr - expected_val
+    observed_val = 2*ad.model$ts_corr - observed_val
   }
   
-  return(list(anomalies=anomalies, th_plot = dts))
+  return(list(anomalies=anomalies, expected=expected_val, observed=observed_val, 
+              significance = signif, type = rep(ad.model$type_th, length(anomalies)), thresholds = dts))
 }
