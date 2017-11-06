@@ -113,9 +113,9 @@ anomalies.stat(AD_res = RES.h, ts.agg = ts.agg)
 anomalies.stat(AD_res = RES.l, ts.agg = ts.agg)
 
 ind_sign = which(RES.h$significance=="High")
-anomalies.analysis(ts.agg  = ts.agg, ad_results = RES.h, k=ind_sign[1])
+anomalies.analysis(ts.agg  = ts.agg.test, ad_results = RES.h, k=ind_sign[1])
 ind_sign = which(RES.l$significance=="High")
-anomalies.analysis(ts.agg  = ts.agg, ad_results = RES.l, k=ind_sign[1])
+anomalies.analysis(ts.agg  = ts.agg.test, ad_results = RES.l, k=ind_sign[1])
 
 
 
