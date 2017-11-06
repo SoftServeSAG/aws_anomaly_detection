@@ -18,22 +18,23 @@ model_prophet <- function(data, yearly="auto", weekly="auto", daily="auto", inte
     #
     # Output:
     # model - prophet model
-    # forecast - forecast data was predicted by model 
-    # historical_data - input data
+    # forecast - forecast data was predicted by model and historical data
     
+    #prepare data for prophet model
     if (dim(data)[2] == 1){
         data_prophet <- data.frame(ds=index(data), y=coredata(data))
     } else{
         return("Please select data with one column for values!")
     }
     
-    
+    # Build prophet model and predict results
     m <- prophet(data_prophet,  yearly.seasonality = yearly, weekly.seasonality = weekly, 
                  daily.seasonality = daily, interval.width = interval_width)
-    future <- make_future_dataframe(m, periods = 1)
+    #future <- make_future_dataframe(m, periods = 1)
     future <- data_prophet %>% select(ds)
     fcst <- predict(m, future)
-
+    
+    # prepare outputs for detecting anomalies
     result <- xts(fcst %>% select("yhat", "yhat_lower", "yhat_upper"), order.by = index(data))
     result$values <- coredata(data)
     
@@ -58,7 +59,7 @@ model_prophet <- function(data, yearly="auto", weekly="auto", daily="auto", inte
 # data %>% tail()
 
 model_prophet_new_interval <- function(fit, percent_up=0, percent_low=0, method='both'){
-    # Function prophet model for time-series data
+    # Function for change treshholds interval and detect anomalies
     #
     # Input:
     # fit - result of model_prophet function
@@ -68,10 +69,11 @@ model_prophet_new_interval <- function(fit, percent_up=0, percent_low=0, method=
     #
     # Output:
     # model - prophet model
-    # xts object with historical data treshholds and anomalies for visualization
+    # xts object with historical data, treshholds and anomalies for visualization
     
     result <- fit$data
     
+    # detect anomalies and change treshholds interval
     switch(method,
            'both' = {
                result$thresolds.h <- result$yhat + (1 + percent_up / 100) * (result$yhat_upper - result$yhat)
@@ -95,4 +97,53 @@ model_prophet_new_interval <- function(fit, percent_up=0, percent_low=0, method=
 # fit$data %>% tail()
 # 
 # res <- model_prophet_new_interval(fit, percent_up=0, percent_low=50, method='both')
+# plot_time_series(res, treshhold_type = 'both')
+
+
+
+model_prophet_test <- function(fit, test){
+    # Function found anomalies on test data
+    #
+    # Input:
+    # fit - result of model_prophet function
+    # test - data for testing (xts object)
+    #
+    # Output:
+    # model - prophet model
+    # xts object with testing data for predict treshholds and anomalies
+    
+    if (is.xts(test)){
+        future <- index(test)
+    } else{
+        future <- test[[1]]
+    }
+    
+    # predict test data
+    all_index <- data.frame(ds=c(index(fit$data), future))
+    fcst <- predict(fit$model, all_index)
+    
+
+    # prepare outputs for detecting anomalies
+    result <- xts(fcst[(dim(fit$data)[1] + 1):dim(fcst)[1], ] %>% select("yhat", "yhat_lower", "yhat_upper"), order.by = index(test))
+    result$values <- coredata(test)
+    
+    return(list(model=fit$model,
+                data=result))
+}
+
+# testing
+
+# data <- xts(x = harMet_15Min$airt, order.by = harMet_15Min$datetime) %>%
+#     aggregation_data(type = '2 days', func_aggregate = 'mean')
+# 
+# data_train <- data[1:1500,]
+# data_test <- data[1501:length(data),]
+# 
+# tail(data_train)
+# head(data_test)
+# 
+# fit <- model_prophet(data_train)
+# fit_test <- model_prophet_test(fit, data_test)
+# 
+# res <- model_prophet_new_interval(fit_test, percent_up=0, percent_low=0, method='both')
 # plot_time_series(res, treshhold_type = 'both')
