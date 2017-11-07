@@ -110,10 +110,14 @@ find.anomalies <- function (ts.agg,
   
   expected_val = a[anomalies]
   observed_val = metric[anomalies]
+  signf=NULL
   
-  metr_diff = (metric - a)[anomalies]
-  #signif = cut(metr_diff, breaks=quantile(metr_diff, seq(0,1,1/3)), labels = c("Low", "Medium", "High"), include.lowest = T)
-  signif = cut(metr_diff, breaks=3, labels = c("Low", "Medium", "High"), include.lowest = T)
+  if (length(anomalies)>0){
+      metr_diff = (metric - a)[anomalies]
+      #signif = cut(metr_diff, breaks=quantile(metr_diff, seq(0,1,1/3)), labels = c("Low", "Medium", "High"), include.lowest = T)
+      signif = cut(metr_diff, breaks=3, labels = c("Low", "Medium", "High"), include.lowest = T)
+      
+  }
   
   if (!is.null(ad.model$ts_corr))
   {
