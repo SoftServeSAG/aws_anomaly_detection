@@ -1,12 +1,12 @@
 library(shiny)
 library(dygraphs)
 library(stringr)
-source("../timeSliders.R")
-source("../remove_na_values.R")
-source("../remove_outliers.R")
-source("../denoise.R")
-source("../aggregation.R")
-source("../visualization.R")
+source("src/timeSliders.R")
+source("src/remove_na_values.R")
+source("src/remove_outliers.R")
+source("src/denoise.R")
+source("src/aggregation.R")
+source("src/visualization.R")
 
 shinyServer(function(input, output, session) {
     # data placeholders
@@ -62,12 +62,14 @@ shinyServer(function(input, output, session) {
     
     # process next button click (slice dataframe into series and move to the Prepare stage)
     observeEvent(input$Next1Btn, {
-        data$series <- data$full[, c(input$DateTimeVar, input$TargetVar)]
-        data$series[, input$DateTimeVar] <-
-            strptime(data$series[, input$DateTimeVar], format = input$DateTimeFmt) %>% as.POSIXct()
-        data$series <- xts(data$series[, 2], order.by = data$series[, 1])
-        data$aggData <- timeSliders(data$series[, 1])
-        updateTabsetPanel(session, "MNB", selected = "Prepare")
+        withProgress(message = "", value = 0, style = "old", {
+            data$series <- data$full[, c(input$DateTimeVar, input$TargetVar)]
+            data$series[, input$DateTimeVar] <-
+                strptime(data$series[, input$DateTimeVar], format = input$DateTimeFmt) %>% as.POSIXct()
+            data$series <- xts(data$series[, 2], order.by = data$series[, 1])
+            data$aggData <- timeSliders(data$series[, 1])
+            updateTabsetPanel(session, "MNB", selected = "Prepare")
+        })
     })
     
     observeEvent(c(input$DateTimeVar, input$TargetVar), {
@@ -98,31 +100,33 @@ shinyServer(function(input, output, session) {
     
     # calculate results and add dynamic container for display
     observeEvent(input$ApplyTsfBtn, {
-        data$seriesNoMis <- remove_na_from_data(data$series, type = input$MissValTreatment)
-        data$seriesNoOut <-
-            remove_outliers_from_data(data$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
-        win_ns <- if(input$NoiseWindowType != 'auto') input$NoiseWindowSize else input$NoiseWindowType
-        data$seriesNoNs <- denoise_data(data$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
-        agg_type <- if(input$AggFunction != 'none') paste(input$AggCount, input$AggUnit, sep = " ") else input$AggFunction
-        data$seriesFinal <- aggregation_data(data$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
-        
-        removeUI(selector = "#processed-results")
-        insertUI(
-            selector = "#tranform-res-placeholder",
-            ui = div(id = "processed-results",
-                h3("Processed"),
-                hr(),
-                radioButtons("TransformResSelector", NULL, inline = T,
-                    choices = c(
-                        "Missing" = "missing",
-                        "Outliers" = "outliers",
-                        "Noise" = "noise",
-                        "Aggregation" = "aggregation"
-                    )
-                ),
-                dygraphOutput("ProcessedSeries")
+        withProgress(message = "", value = 0, style = "old", {
+            data$seriesNoMis <- remove_na_from_data(data$series, type = input$MissValTreatment)
+            data$seriesNoOut <-
+                remove_outliers_from_data(data$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
+            win_ns <- if(input$NoiseWindowType != 'auto') input$NoiseWindowSize else input$NoiseWindowType
+            data$seriesNoNs <- denoise_data(data$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
+            agg_type <- if(input$AggFunction != 'none') paste(input$AggCount, input$AggUnit, sep = " ") else input$AggFunction
+            data$seriesFinal <- aggregation_data(data$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
+            
+            removeUI(selector = "#processed-results")
+            insertUI(
+                selector = "#tranform-res-placeholder",
+                ui = div(id = "processed-results",
+                         h3("Processed"),
+                         hr(),
+                         radioButtons("TransformResSelector", NULL, inline = T,
+                                      choices = c(
+                                          "Missing" = "missing",
+                                          "Outliers" = "outliers",
+                                          "Noise" = "noise",
+                                          "Aggregation" = "aggregation"
+                                      )
+                         ),
+                         dygraphOutput("ProcessedSeries")
+                )
             )
-        )
+        })
     })
     
     output$ProcessedSeries <- renderDygraph({

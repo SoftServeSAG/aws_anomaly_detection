@@ -5,6 +5,9 @@ library(dygraphs)
 
 shinyUI(
     fluidPage(
+        tags$head(
+            tags$link(rel = "stylesheet", type = "text/css", href = "shiny.css")
+        ),
         shinyjs::useShinyjs(),
         navbarPage("Anomaly Detection", id = "MNB",
             tabPanel("Load",
