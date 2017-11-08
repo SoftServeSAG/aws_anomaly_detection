@@ -1,5 +1,5 @@
 app_timeseries <- function(
-        data,
+        SSA,
         trend = TRUE,
         dsigma = 0.1) {
   
@@ -13,7 +13,7 @@ app_timeseries <- function(
   # Output:
   # reconstracted time series
 
-        SSA= ssa(data, L = round(length(data) / 2))
+        #SSA= ssa(data, L = round(length(data) / 2))
 
         sigma=SSA$sigma[2:nsigma(SSA)]
         n = sum(sigma/max(sigma)>=dsigma)

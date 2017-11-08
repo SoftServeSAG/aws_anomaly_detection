@@ -24,6 +24,9 @@ remove_outliers_from_data <- function(data, type='none', number=5){
         data <- as.xts(data)
     }
     
+    #save index
+    data_index <- index(data)
+    
     #define mean and sd for data and differenced data
     data_sd <- sd(data[, 1])
     data_mean <- mean(data, 1)
@@ -41,7 +44,8 @@ remove_outliers_from_data <- function(data, type='none', number=5){
            'diff' = {
                data_diff[data_diff[, 1] > data_diff_mean + number * data_diff_sd] <- data_diff_mean + number * data_diff_sd
                data_diff[data_diff[, 1] < data_diff_mean - number * data_diff_sd] <- data_diff_mean - number * data_diff_sd
-               data <- diffinv(data_diff, lag=1, differences = 1, xi = data[1])[-length(data)]
+               data[-length(data)] <- diffinv(data_diff, lag=1, differences = 1, xi = data[1])[-length(data)]
+               data <- xts(data, order.by = data_index)
            }
     )
     
@@ -56,4 +60,9 @@ remove_outliers_from_data <- function(data, type='none', number=5){
 # serie = zoo(y, full.dates)
 # data <- as.xts(serie)
 # number <- 1
-# remove_outliers_from_data(data, number = 1, type = 'normal')
+# data_diff <- remove_outliers_from_data(data, number = 1, type = 'diff')
+# data %>% dim()
+# length(data_diff)
+# 
+# plot_time_series(data)
+# plot_time_series(data_diff)

@@ -20,6 +20,8 @@ denoise_data <- function(data, type='none', window_noise='auto'){
     # DEMA is calculated as: DEMA = (1 + v) * EMA(x,n) - EMA(EMA(x,n),n) * v 
     # (with the corresponding wilder and ratio arguments).
     #
+    # window_noise - 'auto' or the length of the smoothing window, if an integer, represents 
+    # number of items, else, if a value between 0 and 1, represents the proportion of the input vector
     # Output:
     # xts object without noise
     
@@ -39,11 +41,11 @@ denoise_data <- function(data, type='none', window_noise='auto'){
     
     # select window to denoising
     if (window_noise == 'auto'){
-        window_data <- (max(core_data) - min(core_data)) / length(core_data)
+        window_noise <- (max(core_data) - min(core_data)) / length(core_data)
     }
     
     # denoise data
-    core_data_denoise <-  smth(core_data, window = window_data, method = type) 
+    core_data_denoise <-  smth(core_data, window = window_noise, method = type) 
     
     return(xts(core_data_denoise, order.by = index_data))
 }

@@ -2,10 +2,20 @@ require(xts)
 require(lubridate)
 require(dplyr)
 
-
 #Data Preprocessing Functionality: Data Transformation #2
 
-aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_percent=.9){
+count_non_zero <- function(vector){
+    # Function count non zero values in vector 
+    
+    sum(vector != 0)
+}
+
+# testing
+
+#count_non_zero(c(-1, 0, 2, 0, 4, 0, 0))
+
+
+aggregation_data <- function(data, type='none', func_aggregate="mean", quantile_percent=.9){
     # Function aggregate data of time-series
     #
     # Input:
@@ -14,7 +24,7 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
     #       "seconds", for example "5 seconds", or "minutes", "hours", "days", "weeks", 
     #       "months", "quarters", and "years")
     # func_aggregate - function for aggregating data, for example "sum", "mean", "median", 
-    #       "max", "min" or "n_quantile"
+    #       "max", "min", "count_non_zero" or "n_quantile"
     # quantile_percent - for "n% -quantile" aggregation function
     #
     # Output:
@@ -34,16 +44,13 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
     type_periods <- strsplit(type, " ")[[1]][2]
     
     #Aggregate data
-    if (func_aggregate %in% c("sum", "mean", "median", "max", "min")){
-        aggregated_data <- period.apply(data, INDEX=endpoints(data, on=type_periods, k=number_periods), FUN=func_aggregate)
-    }
-    
     if (func_aggregate == 'n_quantile'){
         aggregated_data <- period.apply(data, INDEX=endpoints(data, on=type_periods, k=number_periods), FUN=function(x){
             quantile(x, probs = quantile_percent)
         })
+    } else{
+        aggregated_data <- period.apply(data, INDEX=endpoints(data, on=type_periods, k=number_periods), FUN=func_aggregate)
     }
-    
     
     return(aggregated_data)
 }
@@ -52,7 +59,7 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
 
 # harMet_15Min <- read.csv(
 #     file="data/HARV/FisherTower-Met/hf001-10-15min-m.csv",
-#     stringsAsFactors = FALSE) %>% mutate(datetime =as.POSIXct(datetime,format="%Y-%m-%dT%H:%M") ) %>% 
+#     stringsAsFactors = FALSE) %>% mutate(datetime =as.POSIXct(datetime,format="%Y-%m-%dT%H:%M") ) %>%
 #     na.omit(datetime) %>% select(datetime, airt)
 # 
 # head(harMet_15Min)
@@ -60,5 +67,6 @@ aggregation_data <- function(data, type='none', func_aggregate="sum", quantile_p
 # data <- xts(x = harMet_15Min$airt, order.by = harMet_15Min$datetime)
 # first(data, 10)
 # 
-# aggregation_data(data, type = '3 weeks', func_aggregate = 'n_quantile', quantile_percent = .5) %>% head()
+# aggregation_data(data, type = '3 weeks', func_aggregate = 'n_quantile', quantile_percent = .9) %>% head()
 # aggregation_data(data, type = '3 weeks', func_aggregate = 'median', quantile_percent = .5) %>% head()
+# aggregation_data(data, type = '3 weeks', func_aggregate = 'count_non_zero') %>% head(10)
