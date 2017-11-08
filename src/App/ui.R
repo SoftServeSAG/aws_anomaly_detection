@@ -79,8 +79,7 @@ shinyUI(
                     )
                 )
             ),
-            tabPanel(
-                "Prepare",
+            tabPanel("Prepare",
                 fluidPage(
                     fluidRow(
                         column(3,
@@ -88,60 +87,90 @@ shinyUI(
                             hr(),
                             fluidRow(
                                 column(6,
-                                       div(strong("Missing values"), style = "padding: 5px;font-size: 110%;")
+                                    div(strong("Missing values"), style = "padding: 5px;font-size: 110%;")
                                 ),
                                 column(6,
-                                       selectizeInput("MissValTreatment", NULL, choices = c('Zero'='zero', 'Linear'='linear', 'Mean'='mean'),
-                                                      options = list(
-                                                          placeholder = "None",
-                                                          onInitialize = I('function() { this.setValue(""); }')
-                                                      ))
+                                    selectInput("MissValTreatment", NULL, choices = c('Zero'='zero', 'Linear'='linear', 'Mean'='mean'))
                                 )
                             ),
                             hr(),
                             fluidRow(
                                 column(6,
-                                       div(strong("Outliers Detection"), style = "padding: 5px;font-size: 110%;")
+                                    div(strong("Outliers Detection"), style = "padding: 5px;font-size: 110%;")
                                 ),
                                 column(6,
-                                       selectizeInput("OutliersTreatment", NULL, choices = c('Normal'='normal', 'Diff'='diff'),
-                                                      options = list(
-                                                          placeholder = "None",
-                                                          onInitialize = I('function() { this.setValue(""); }')
-                                                      ))
+                                    selectInput("OutliersTreatment", NULL, choices = c('None' = 'none', 'Normal'='normal', 'Diff'='diff'))
+                                )
+                            ),
+                            conditionalPanel(
+                                condition = "input.OutliersTreatment != 'none'",
+                                fluidRow(
+                                    column(6,
+                                        div("Count", style = "padding: 5px;font-size: 110%;")
+                                    ),
+                                    column(6,
+                                        sliderInput("OutliersSigmaCount", NULL, value = 5, min = 3, max = 7)
+                                    )
                                 )
                             ),
                             hr(),
                             fluidRow(
                                 column(6,
-                                       div(strong("Noise Reduction"), style = "padding: 5px;font-size: 110%;")
+                                    div(strong("Noise Reduction"), style = "padding: 5px;font-size: 110%;")
                                 ),
                                 column(6,
-                                       selectizeInput("NoiseTreatment", NULL, choices = c('Gaussian'='gaussian', 'SMA'='sma','EMA'='ema', 'DEMA'='dema','WMA'='wma'),
-                                                      options = list(
-                                                          placeholder = "None",
-                                                          onInitialize = I('function() { this.setValue(""); }')
-                                                      ))
+                                    selectInput("NoiseTreatment", NULL, choices = c('None' = 'none', 'Gaussian'='gaussian', 'SMA'='sma','EMA'='ema'))
+                                )
+                            ),
+                            conditionalPanel(
+                                condition = "input.NoiseTreatment != 'none'",
+                                fluidRow(
+                                    column(6,
+                                        div("Kernel size", style = "padding: 5px;font-size: 110%;")
+                                    ),
+                                    column(6,
+                                           selectInput("NoiseWindowType", NULL, choices = c('Auto'='auto', 'Manual'='manual'))
+                                    )
+                                )
+                            ),
+                            conditionalPanel(
+                                condition = "input.NoiseTreatment != 'none' && input.NoiseWindowType != 'auto'",
+                                fluidRow(
+                                    column(12,
+                                        sliderInput("NoiseWindowSize", NULL, value = 5, min = 3, max = 25, width = '100%')
+                                    )
                                 )
                             ),
                             hr(), hr(),
                             h3("Aggregation"),
                             hr(),
-                            fluidRow( # TODO: unfinished
+                            fluidRow(
                                 column(6,
-                                       div(strong("Function"), style = "padding: 5px;font-size: 110%;")
+                                    div(strong("Function"), style = "padding: 5px;font-size: 110%;")
                                 ),
                                 column(6,
-                                       selectizeInput("AggFunction", NULL, choices = c('Sum'='sum', 'Min'='min', 'Avg'='mean', 'Median'='median', 'Max'='max'),
-                                                      options = list(
-                                                          placeholder = "None",
-                                                          onInitialize = I('function() { this.setValue(""); }')
-                                                      ))
+                                    selectInput("AggFunction", NULL, choices = c('None'='none', 'Sum'='sum', 'Min'='min', 'Avg'='mean', 'Median'='median', 'Max'='max'))
+                                )
+                            ),
+                            conditionalPanel(
+                                condition = "input.AggFunction != 'none'",
+                                fluidRow(
+                                    column(6,
+                                        div(strong("Unit"), style = "padding: 5px;font-size: 110%;")
+                                    ),
+                                    column(6,
+                                        uiOutput("AggUnitPlaceholder")
+                                    )
+                                ),
+                                fluidRow(
+                                    column(12,
+                                        uiOutput("AggCountPlaceholder")
+                                    )
                                 )
                             ),
                             fluidRow(
                                 column(4, offset=4,
-                                       actionButton("ApplyTsfBtn", "Apply", width = '100%')
+                                    actionButton("ApplyTsfBtn", "Apply", width = '100%')
                                 )
                             )
                         ),
@@ -156,7 +185,7 @@ shinyUI(
                     ),
                     fluidRow(
                         column(1, offset=11,
-                               actionButton("Next2Btn", "Next", width = '100%')
+                            actionButton("Next2Btn", "Next", width = '100%')
                         )
                     )
                 )
