@@ -6,13 +6,14 @@ require(dygraphs)
 
 #Data Preprocessing Functionality: Data Visualization
 
-plot_time_series <- function(data, treshhold_type='all', window_size=0.75){
+plot_time_series <- function(data, treshhold_type='all', window_size=0.75, train_test_split='none'){
     # Function plot time-series data
     #
     # Input:
     # data - xts object with time-series data
     # treshhold_type - type of treshholds (all, none, low or high)
     # window_size - size of plot window on bottom or vector of index date c(start_date, end_date)
+    # train_test_split - number from 0 to 1, which split all data on train and test
     #
     # Output:
     # dygraphs plot of time series
@@ -77,7 +78,11 @@ plot_time_series <- function(data, treshhold_type='all', window_size=0.75){
         
     }
     
-
+    if (train_test_split !='none'){
+        index_split <- index(data)[round(length(index(data)) * train_test_split, 0)]
+        plot_data <- plot_data %>% 
+            dyEvent(index_split, "Train-test split", labelLoc = "bottom", strokePattern='solid', color = 'red')
+    }
     
     return(plot_data %>% 
                dyHighlight(highlightSeriesOpts = list(strokeWidth = 2),

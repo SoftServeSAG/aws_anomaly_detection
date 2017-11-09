@@ -117,9 +117,13 @@ window_data <- c(index(res)[index_anomalies - 1], index(res)[index_anomalies])
 plot_time_series(data, window_size = 0.9)
 plot_time_series(data, window_size = window_data)
 
+# testing 1 column with train-test split
+
+plot_time_series(data_agg, window_size = 0.9)
+plot_time_series(data_agg, window_size = 0.9, train_test_split = 0.95)
+
+
 # testing 4 column
-
-
 
 HH_data <- readRDS("data/household_power_consumption_datatime.rds")
 
