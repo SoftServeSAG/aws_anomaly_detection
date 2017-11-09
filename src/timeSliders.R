@@ -24,7 +24,7 @@ timeSliders <- function(datetime){
               minutes=max(floor(d_min/60),1), 
               hours=max(floor(d_min/3600),1), 
               days=max(floor(d_min/86400),1), 
-              month=max(floor(d_min/(86400*31)),1), 
+              months=max(floor(d_min/(86400*31)),1), 
               years=max(floor(d_min/(86400*365)),1))
   
   
@@ -32,10 +32,10 @@ timeSliders <- function(datetime){
              minutes=min(floor(max(lag/120,1)),60), 
              hours=min(floor(max(lag/3600/2,1)),24), 
              days=min(floor(max(lag/86400/2,1)),31), 
-             month=min(floor(max(lag/(86400*31)/2,1)),12), 
+             months=min(floor(max(lag/(86400*31)/2,1)),12), 
              years=floor(max(lag/(86400*365)/2,1)))
   
-  ind=which(start_val <= max_lag)
+  ind=which(start_val < max_lag)
   start_val=start_val[ind]
   max_lag=max_lag[ind]
   
