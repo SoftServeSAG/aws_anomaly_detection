@@ -10,9 +10,7 @@ count_non_zero <- function(vector){
     sum(vector != 0)
 }
 
-# testing
 
-#count_non_zero(c(-1, 0, 2, 0, 4, 0, 0))
 
 
 aggregation_data <- function(data, type='none', func_aggregate="mean", quantile_percent=.9){
@@ -54,19 +52,3 @@ aggregation_data <- function(data, type='none', func_aggregate="mean", quantile_
     
     return(aggregated_data)
 }
-
-# testing
-
-# harMet_15Min <- read.csv(
-#     file="data/HARV/FisherTower-Met/hf001-10-15min-m.csv",
-#     stringsAsFactors = FALSE) %>% mutate(datetime =as.POSIXct(datetime,format="%Y-%m-%dT%H:%M") ) %>%
-#     na.omit(datetime) %>% select(datetime, airt)
-# 
-# head(harMet_15Min)
-# 
-# data <- xts(x = harMet_15Min$airt, order.by = harMet_15Min$datetime)
-# first(data, 10)
-# 
-# aggregation_data(data, type = '3 weeks', func_aggregate = 'n_quantile', quantile_percent = .9) %>% head()
-# aggregation_data(data, type = '3 weeks', func_aggregate = 'median', quantile_percent = .5) %>% head()
-# aggregation_data(data, type = '3 weeks', func_aggregate = 'count_non_zero') %>% head(10)

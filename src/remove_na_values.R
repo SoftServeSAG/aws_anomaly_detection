@@ -44,14 +44,3 @@ remove_na_from_data <- function(data, type='zero'){
     return(data)
 }
 
-# testing
-
-# n = 15
-# full.dates = seq(Sys.Date(), by = 'day', length = n)
-# y = rnorm(n)
-# serie = zoo(y, full.dates)
-# data <- as.xts(serie)
-# data[c(2, 6:7, 10)] <- NA
-# 
-# remove_na_from_data(data, type = 'linear')
-

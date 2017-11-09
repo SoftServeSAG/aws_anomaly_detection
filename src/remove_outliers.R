@@ -51,18 +51,3 @@ remove_outliers_from_data <- function(data, type='none', number=5){
     
     return(data)
 }
-
-# testing
-
-# n = 30
-# full.dates = seq(Sys.Date(), by = 'day', length = n)
-# y = c(-2,-1,0,1,2,3,4,2,3,-2,-1,0,1,2,3,4,2,3-2,-1,0,1,2,3,4,2,3,1,0,1500)
-# serie = zoo(y, full.dates)
-# data <- as.xts(serie)
-# number <- 1
-# data_diff <- remove_outliers_from_data(data, number = 1, type = 'diff')
-# data %>% dim()
-# length(data_diff)
-# 
-# plot_time_series(data)
-# plot_time_series(data_diff)
