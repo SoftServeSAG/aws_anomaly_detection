@@ -80,7 +80,7 @@ shinyServer(function(input, output, session) {
     
     # SECOND (PREPARE) PAGE CONTENT
     # plot original series
-    output$OriginalSeries <- renderDygraph(plot_time_series(data$series))
+    output$OriginalSeries <- renderDygraph(if (!is.null(data$series)) plot_time_series(data$series))
     
     # aggregation dynamic UI parts
     output$AggUnitPlaceholder <- renderUI({
@@ -142,5 +142,14 @@ shinyServer(function(input, output, session) {
                 return(plot_time_series(data$seriesFinal))
             }
         }
+    })
+    
+    output$DateTimeF <- renderUI({
+        if (input$DateTimeCh=="Manualy")
+        {
+            return(list(textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
+                        bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")))
+        }
+        
     })
 })
