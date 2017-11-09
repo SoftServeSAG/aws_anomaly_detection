@@ -98,6 +98,25 @@ data <- xts(x = harMet_15Min$airt, order.by = harMet_15Min$datetime) %>%
 
 plot_time_series(data)
 
+
+# testing 1 column with window on anomalies
+
+data <- xts(x = harMet_15Min$airt, order.by = harMet_15Min$datetime)
+
+data_agg <- data %>%
+    aggregation_data(type = '1 days', func_aggregate = 'median')
+
+fit <- model_prophet_train(data_agg)
+res <- model_prophet_new_interval(fit, percent_up=0, percent_low=0, method='both')
+plot_time_series(res, treshhold_type = 'both')
+
+index_anomalies <-  144
+window_data <- c(index(res)[index_anomalies - 1], index(res)[index_anomalies])
+
+
+plot_time_series(data, window_size = 0.9)
+plot_time_series(data, window_size = window_data)
+
 # testing 4 column
 
 

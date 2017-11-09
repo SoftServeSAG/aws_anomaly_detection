@@ -12,7 +12,7 @@ plot_time_series <- function(data, treshhold_type='all', window_size=0.75){
     # Input:
     # data - xts object with time-series data
     # treshhold_type - type of treshholds (all, none, low or high)
-    # window_size - size of plot window on bottom 
+    # window_size - size of plot window on bottom or vector of index date c(start_date, end_date)
     #
     # Output:
     # dygraphs plot of time series
@@ -24,7 +24,12 @@ plot_time_series <- function(data, treshhold_type='all', window_size=0.75){
     }
     
     #define window for plot and prepare xts
-    window_data <- index(data)[c(window_size, 1) * length(index(data)) %>% as.integer()]
+    if (is.numeric(window_size)){
+        window_data <- index(data)[c(window_size, 1) * length(index(data)) %>% as.integer()]
+    } else{
+        window_data <- window_size
+    }
+    
     names(data)[1] <- "values"
     
     # define dygraph plot
