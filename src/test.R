@@ -120,7 +120,7 @@ plot_time_series(data, window_size = window_data)
 # testing 1 column with train-test split
 
 plot_time_series(data_agg, window_size = 0.9)
-plot_time_series(data_agg, window_size = 0.9, train_test_split = 0.95)
+plot_time_series(data_agg, window_size = 0, train_test_split = 0.95)
 
 
 # testing 4 column

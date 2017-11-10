@@ -26,7 +26,7 @@ plot_time_series <- function(data, treshhold_type='all', window_size=0.75, train
     
     #define window for plot and prepare xts
     if (is.numeric(window_size)){
-        window_data <- index(data)[c(window_size, 1) * length(index(data)) %>% as.integer()]
+        window_data <- index(data)[c(max(window_size * length(index(data)) %>% as.integer(), 1), length(index(data)))]
     } else{
         window_data <- window_size
     }
