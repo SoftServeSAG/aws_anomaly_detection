@@ -43,11 +43,11 @@ model_prophet_train <- function(data, yearly="auto", weekly="auto", daily="auto"
 }
 
 
-model_prophet_new_interval <- function(fit, percent_up=0, percent_low=0, method='both'){
+model_prophet_new_interval <- function(fit_data, percent_up=0, percent_low=0, method='both'){
     # Function for change treshholds interval and detect anomalies
     #
     # Input:
-    # fit - result of model_prophet function
+    # fit_data - result data from model_prophet function
     # percent_up - percent  for define up treshholds  
     # percent_low - percent  for define low treshholds     
     # method - method for defile anomalies (both, high or low)
@@ -56,7 +56,7 @@ model_prophet_new_interval <- function(fit, percent_up=0, percent_low=0, method=
     # model - prophet model
     # xts object with historical data, treshholds and anomalies for visualization
     
-    result <- fit$data
+    result <- fit_data
     
     # detect anomalies and change treshholds interval
     switch(method,
