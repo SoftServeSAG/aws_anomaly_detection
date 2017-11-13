@@ -22,6 +22,6 @@ dynamicThreshold.smart_train.two_sided <- function (ts.agg,
                                        periods = periods,
                                        train.params=train.params)
   
-  return(list(low =model.l, high = model.h))
+  return(list(low =model.l$low, high = model.h$high))
   
 }
