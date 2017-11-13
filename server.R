@@ -64,8 +64,11 @@ shinyServer(function(input, output, session) {
     observeEvent(input$Next1Btn, {
         withProgress(message = "", value = 0, style = "old", {
             data$series <- data$full[, c(input$DateTimeVar, input$TargetVar)]
-            data$series[, input$DateTimeVar] <-
-                strptime(data$series[, input$DateTimeVar], format = input$DateTimeFmt) %>% as.POSIXct()
+            if (input$DateTimeCh=="Manualy")
+                data$series[,input$DateTimeVar] <- strptime(data$series[,input$DateTimeVar], format=input$DateTimeFmt) %>% as.POSIXct() 
+            else
+                data$series[,input$DateTimeVar] <- strptime(data$series[,input$DateTimeVar], format=input$DateTimeCh) %>% as.POSIXct() 
+            
             data$series <- xts(data$series[, 2], order.by = data$series[, 1])
             data$aggData <- timeSliders(data$series[, 1])
             updateTabsetPanel(session, "MNB", selected = "Prepare")
@@ -80,7 +83,7 @@ shinyServer(function(input, output, session) {
     
     # SECOND (PREPARE) PAGE CONTENT
     # plot original series
-    output$OriginalSeries <- renderDygraph(plot_time_series(data$series))
+    output$OriginalSeries <- renderDygraph(if (!is.null(data$series)) plot_time_series(data$series))
     
     # aggregation dynamic UI parts
     output$AggUnitPlaceholder <- renderUI({
@@ -142,5 +145,14 @@ shinyServer(function(input, output, session) {
                 return(plot_time_series(data$seriesFinal))
             }
         }
+    })
+    
+    output$DateTimeF <- renderUI({
+        if (input$DateTimeCh=="Manualy")
+        {
+            return(list(textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
+                        bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")))
+        }
+        
     })
 })
