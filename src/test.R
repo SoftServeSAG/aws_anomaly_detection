@@ -204,3 +204,19 @@ xts.vis = TSThresholdsAnomaliesVis(ts.agg=my.model.h$raw_timeseries,
                                    thresholds = my.model.h$ad_results$thresholds, 
                                    anomalies = my.model.h$ad_results$anomalies)
 plot_time_series(xts.vis, treshhold_type = 'high')
+
+
+### train_test_split
+
+source('src/train_test_split.R')
+
+dim(data)
+
+fit <- train_test_split_time_series(data, split_data = .5)
+fit$train %>% dim()
+fit$test %>% dim()
+
+fit$train %>% tail()
+fit$test %>% head()
+
+fit$plot
