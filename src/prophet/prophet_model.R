@@ -48,8 +48,8 @@ model_prophet_new_interval <- function(fit_data, percent_up=0, percent_low=0, me
     #
     # Input:
     # fit_data - result data from model_prophet function
-    # percent_up - percent  for define up treshholds  
-    # percent_low - percent  for define low treshholds     
+    # percent_up - percent  for define up treshholds from -1 to 1 
+    # percent_low - percent  for define low treshholds from -1 to 1     
     # method - method for defile anomalies (both, high or low)
     #
     # Output:
@@ -61,16 +61,16 @@ model_prophet_new_interval <- function(fit_data, percent_up=0, percent_low=0, me
     # detect anomalies and change treshholds interval
     switch(method,
            'both' = {
-               result$thresolds.h <- result$yhat + (1 + percent_up / 100) * (result$yhat_upper - result$yhat)
-               result$thresolds.l <- result$yhat - (1 + percent_low / 100) * (result$yhat - result$yhat_lower)
+               result$thresolds.h <- result$yhat + (1 + percent_up) * (result$yhat_upper - result$yhat)
+               result$thresolds.l <- result$yhat - (1 + percent_low) * (result$yhat - result$yhat_lower)
                result$anomalies <- ifelse((result$values > result$thresolds.h) | (result$values < result$thresolds.l), result$values, NA)
            },
            'low' = {
-               result$thresolds <- result$yhat - (1 + percent_low / 100) * (result$yhat - result$yhat_lower)
+               result$thresolds <- result$yhat - (1 + percent_low) * (result$yhat - result$yhat_lower)
                result$anomalies <- ifelse(result$values < result$thresolds, result$values, NA)
            },
            'high' = {
-               result$thresolds <- result$yhat + (1 + percent_up / 100) * (result$yhat_upper - result$yhat)
+               result$thresolds <- result$yhat + (1 + percent_up) * (result$yhat_upper - result$yhat)
                result$anomalies <- ifelse(result$values > result$thresolds, result$values, NA)
            })
     
