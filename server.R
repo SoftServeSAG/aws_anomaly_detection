@@ -7,6 +7,7 @@ source("src/remove_outliers.R")
 source("src/denoise.R")
 source("src/aggregation.R")
 source("src/visualization.R")
+source("src/Model/dynamicThreshold.smart.R")
 
 shinyServer(function(input, output, session) {
     
@@ -14,7 +15,8 @@ shinyServer(function(input, output, session) {
     data <- reactiveValues(
         orig = NULL,
         series = NULL,
-        aggData = NULL)
+        aggData = NULL,
+        model = NULL)
     
     # TRAIN DATA PLACEHOLDERS
     train <- reactiveValues(
@@ -22,7 +24,8 @@ shinyServer(function(input, output, session) {
         seriesNoMis = NULL,
         seriesNoOut = NULL,
         seriesNoNs = NULL,
-        seriesFinal = NULL
+        seriesPrepared = NULL,
+        seriesAfterModel = NULL
     )
     
     # TEST DATA PLACEHOLDERS
@@ -31,7 +34,8 @@ shinyServer(function(input, output, session) {
         seriesNoMis = NULL,
         seriesNoOut = NULL,
         seriesNoNs = NULL,
-        seriesFinal = NULL
+        seriesPrepared = NULL,
+        seriesAfterModel = NULL
     )
     
     # FIRST PAGE CONTENT
@@ -165,7 +169,13 @@ shinyServer(function(input, output, session) {
     
     # SECOND (PREPARE) PAGE CONTENT
     # plot series, train part
-    output$TrainSeriesClean <- renderDygraph(plot_time_series(train$series))
+    output$TrainSeriesClean <- renderDygraph({
+        if(is.null(train$series)) {
+            return(NULL)
+        } else {
+            return(plot_time_series(train$series))
+        }
+    })
     
     # aggregation dynamic UI parts
     output$AggUnitPlaceholder <- renderUI({
@@ -189,10 +199,11 @@ shinyServer(function(input, output, session) {
             train$seriesNoMis <- remove_na_from_data(train$series, type = input$MissValTreatment)
             train$seriesNoOut <-
                 remove_outliers_from_data(train$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
-            win_ns <- if(input$NoiseWindowType != 'auto') input$NoiseWindowSize else input$NoiseWindowType
+            win_ns = if(input$NoiseWindowType != 'auto') input$NoiseWindowSize else input$NoiseWindowType
             train$seriesNoNs <- denoise_data(train$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
-            agg_type <- if(input$AggFunction != 'none') paste(input$AggCount, input$AggUnit, sep = " ") else input$AggFunction
-            train$seriesFinal <- aggregation_data(train$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
+            agg_type = if(input$AggFunction != 'none') paste(input$AggCount, input$AggUnit, sep = " ") else input$AggFunction
+            train$seriesPrepared <- aggregation_data(train$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
+            train$seriesAfterModel <- train$seriesPrepared
             
             removeUI(selector = "#processed-results")
             insertUI(
@@ -218,14 +229,165 @@ shinyServer(function(input, output, session) {
         if(!is.null(input$TransformResSelector)) {
             render.data <- NULL
             if(input$TransformResSelector == 'missing') {
-                return(plot_time_series(data$seriesNoMis))
+                return(plot_time_series(train$seriesNoMis))
             } else if (input$TransformResSelector == 'outliers') {
-                return(plot_time_series(data$seriesNoOut))
+                return(plot_time_series(train$seriesNoOut))
             } else if(input$TransformResSelector == 'noise') {
-                return(plot_time_series(data$seriesNoNs))
+                return(plot_time_series(train$seriesNoNs))
             } else {
-                return(plot_time_series(data$seriesFinal))
+                return(plot_time_series(train$seriesPrepared))
             }
         }
     })
+    
+    # THIRD (TRAIN) PAGE CONTENT
+    output$TrainSeriesDisplay <- renderDygraph({
+        if(is.null(train$seriesAfterModel)) {
+            return(NULL)
+        }
+        return(plot_time_series(train$seriesAfterModel))
+    })
+    
+    output$ModelParams <- renderUI({
+        if(input$ModelType == "dt") {
+            if(input$TrainMode == "simple") {
+                fluidRow(
+                    column(6,
+                        div("Sensitivity", style = "padding: 5px;font-size: 110%;")
+                    ),
+                    column(6,
+                        selectInput("DT_Simple_Sens", NULL, choices = c("Low"="low","Medium"="medium","High"="high"), selected = "medium")
+                    )
+                )
+            } 
+            else if(input$TrainMode == "expert") {
+                fluidRow(
+                    column(12,
+                        fluidRow(
+                            column(12,
+                                sliderInput("DT_Expert_TAL", "Thresholds Aggregation Level", min = 0.05, max = 0.9, value = 0.6)
+                            )
+                        ),
+                        fluidRow(
+                            column(12,
+                                sliderInput("DT_Expert_LTB", "Local Trend Basis", min = 0.05, max = 0.9, value = 0.3)
+                            )
+                        ),
+                        fluidRow(
+                            column(12,
+                                sliderInput("DT_Expert_NS", "Neighbour Similarity", min = 0.01, max = 0.99, value = 0.1)
+                            )
+                        )
+                    )
+                )
+            }
+        }
+        else if(input$ModelType == "prophet") {
+            if(input$TrainMode == "expert") {
+                fluidRow(
+                    column(12,
+                        fluidRow(
+                            column(6,
+                                div("Yearly seasonality", style = "padding: 5px;font-size: 110%;")
+                            ),
+                            column(6,
+                                selectInput("PROPH_Expert_YS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                            )
+                        ),
+                        fluidRow(
+                            column(6,
+                                div("Weekly seasonality", style = "padding: 5px;font-size: 110%;")
+                            ),
+                            column(6,
+                                selectInput("PROPH_Expert_WS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                            )
+                        ),
+                        fluidRow(
+                            column(6,
+                                div("Daily seasonality", style = "padding: 5px;font-size: 110%;")
+                            ),
+                            column(6,
+                                selectInput("PROPH_Expert_DS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                            )
+                        ),
+                        fluidRow(
+                            column(12,
+                                sliderInput("PROPH_Expert_UI", "Uncertainty intervals", min = 0.6, max = 0.99, value = 0.9)
+                            )
+                        )
+                    )
+                )
+            }
+        }
+    })
+    
+    output$ModelTuning <- renderUI({
+        if(input$ModelType == "dt") {
+            fluidRow(
+                column(12,
+                    fluidRow(
+                        column(12,
+                            h4("Low-bound anomalies"),
+                            sliderInput("DT_LBAnomCorr", "Correction", min = -1, max = 1, value = 0),
+                            sliderInput("DT_LBAnomScale", "Scale", min = 0.25, max = 4, value = 1)
+                        )
+                    ),
+                    fluidRow(
+                        column(12,
+                            h4("High-bound anomalies"),
+                            sliderInput("DT_HBAnomCorr", "Correction", min = -1, max = 1, value = 0),
+                            sliderInput("DT_HBAnomScale", "Scale", min = 0.25, max = 4, value = 1)
+                        )
+                    ),
+                    hr(),
+                    fluidRow(
+                        column(8,
+                            sliderInput("DT_AutoTunePct", NULL, min = 0.001, max = 0.05, value = 0.01)
+                        ),
+                        column(4, style = "padding: 15px;",
+                            actionButton("AutoTuneBtn", "Auto-tune", width = "100%"),
+                            bsTooltip("AutoTuneBtn", "Set slider values automatically", placement = "top")
+                        )
+                    )
+                )
+            )
+        }
+        else if(input$ModelType == "prophet") {
+            fluidRow(
+                column(12,
+                    fluidRow(
+                        column(12,
+                            h4("Low-bound anomalies"),
+                            sliderInput("PROPH_LBAnomScale", "Scale", min = -100, max = 100, value = 0)
+                        )
+                    ),
+                    fluidRow(
+                        column(12,
+                            h4("High-bound anomalies"),
+                            sliderInput("PROPH_HBAnomScale", "Scale", min = -100, max = 100, value = 0)
+                        )
+                    )
+                )
+            )
+        }
+        else {
+            fluidRow(
+                column(12,
+                    div("Please select model type")
+                )
+            )
+        }
+    })
+    
+    observeEvent(c(input$ModelType, input$TrainMode), {
+        if(input$ModelType != "" && input$TrainMode != "") {
+            shinyjs::enable("ModelTrainBtn")
+        }
+    })
+    
+    # observeEvent(input$ModelTrainBtn, {
+    #     withProgress(message = "", value = 0, style = "old", {
+    #         data$model <- 
+    #     })
+    # })
 })

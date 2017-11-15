@@ -14,7 +14,7 @@ shinyUI(
             tabPanel("Load",
                 fluidPage(
                     sidebarLayout(
-                        sidebarPanel(id = "sidebar01",
+                        sidebarPanel(class = "sad-app-container",
                             h3("Load data"),
                             br(),
                             fileInput("LocalFile", NULL),
@@ -46,120 +46,179 @@ shinyUI(
             ),
             tabPanel("Prepare",
                 fluidPage(
-                    sidebarPanel(id = 'sidebar02',
-                        fluidRow(
-                            bsCollapse(open = "Transformation", multiple = F,
-                                bsCollapsePanel("Transformation",
-                                    fluidRow(
-                                        column(6,
-                                               div(strong("Missing values"), style = "padding: 5px;font-size: 110%;")
-                                        ),
-                                        column(6,
-                                               selectInput("MissValTreatment", NULL, choices = c('Zero'='zero', 'Linear'='linear', 'Mean'='mean'))
-                                        )
-                                    ),
-                                    hr(),
-                                    fluidRow(
-                                        column(6,
-                                               div(strong("Outliers Detection"), style = "padding: 5px;font-size: 110%;")
-                                        ),
-                                        column(6,
-                                               selectInput("OutliersTreatment", NULL, choices = c('None' = 'none', 'Normal'='normal', 'Diff'='diff'))
-                                        )
-                                    ),
-                                    conditionalPanel(
-                                        condition = "input.OutliersTreatment != 'none'",
+                    sidebarLayout(
+                        sidebarPanel(class = "sad-app-container",
+                            fluidRow(
+                                bsCollapse(open = "Transformation", multiple = F,
+                                    bsCollapsePanel("Transformation",
                                         fluidRow(
                                             column(6,
-                                                   div("Count", style = "padding: 5px;font-size: 110%;")
+                                                div(strong("Missing values"), style = "padding: 5px;font-size: 110%;")
                                             ),
                                             column(6,
-                                                   sliderInput("OutliersSigmaCount", NULL, value = 5, min = 3, max = 7)
+                                                selectInput("MissValTreatment", NULL, choices = c('Zero'='zero', 'Linear'='linear', 'Mean'='mean'))
+                                            )
+                                        ),
+                                        hr(),
+                                        fluidRow(
+                                            column(6,
+                                                div(strong("Outliers Detection"), style = "padding: 5px;font-size: 110%;")
+                                            ),
+                                            column(6,
+                                                selectInput("OutliersTreatment", NULL, choices = c('None' = 'none', 'Normal'='normal', 'Diff'='diff'))
+                                            )
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.OutliersTreatment != 'none'",
+                                            fluidRow(
+                                                column(6,
+                                                    div("Count", style = "padding: 5px;font-size: 110%;")
+                                                ),
+                                                column(6,
+                                                    sliderInput("OutliersSigmaCount", NULL, value = 5, min = 3, max = 7)
+                                                )
+                                            )
+                                        ),
+                                        hr(),
+                                        fluidRow(
+                                            column(6,
+                                                div(strong("Noise Reduction"), style = "padding: 5px;font-size: 110%;")
+                                            ),
+                                            column(6,
+                                                selectInput("NoiseTreatment", NULL, choices = c('None' = 'none', 'Gaussian'='gaussian', 'SMA'='sma','EMA'='ema'))
+                                            )
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.NoiseTreatment != 'none'",
+                                            fluidRow(
+                                                column(6,
+                                                    div("Kernel size", style = "padding: 5px;font-size: 110%;")
+                                                ),
+                                                column(6,
+                                                    selectInput("NoiseWindowType", NULL, choices = c('Auto'='auto', 'Manual'='manual'))
+                                                )
+                                            )
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.NoiseTreatment != 'none' && input.NoiseWindowType != 'auto'",
+                                            fluidRow(
+                                                column(12,
+                                                    sliderInput("NoiseWindowSize", NULL, value = 5, min = 3, max = 25, width = '100%')
+                                                )
                                             )
                                         )
                                     ),
-                                    hr(),
-                                    fluidRow(
-                                        column(6,
-                                               div(strong("Noise Reduction"), style = "padding: 5px;font-size: 110%;")
-                                        ),
-                                        column(6,
-                                               selectInput("NoiseTreatment", NULL, choices = c('None' = 'none', 'Gaussian'='gaussian', 'SMA'='sma','EMA'='ema'))
-                                        )
-                                    ),
-                                    conditionalPanel(
-                                        condition = "input.NoiseTreatment != 'none'",
+                                    bsCollapsePanel("Aggregation",
                                         fluidRow(
                                             column(6,
-                                                   div("Kernel size", style = "padding: 5px;font-size: 110%;")
+                                                div(strong("Function"), style = "padding: 5px;font-size: 110%;")
                                             ),
                                             column(6,
-                                                   selectInput("NoiseWindowType", NULL, choices = c('Auto'='auto', 'Manual'='manual'))
+                                                selectInput("AggFunction", NULL, choices = c('None'='none', 'Sum'='sum', 'Min'='min', 'Avg'='mean', 'Median'='median', 'Max'='max'))
                                             )
-                                        )
-                                    ),
-                                    conditionalPanel(
-                                        condition = "input.NoiseTreatment != 'none' && input.NoiseWindowType != 'auto'",
-                                        fluidRow(
-                                            column(12,
-                                                   sliderInput("NoiseWindowSize", NULL, value = 5, min = 3, max = 25, width = '100%')
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.AggFunction != 'none'",
+                                            fluidRow(
+                                                column(6,
+                                                    div(strong("Unit"), style = "padding: 5px;font-size: 110%;")
+                                                ),
+                                                column(6,
+                                                    uiOutput("AggUnitPlaceholder")
+                                                )
+                                            ),
+                                            fluidRow(
+                                                column(12,
+                                                    uiOutput("AggCountPlaceholder")
+                                                )
                                             )
                                         )
                                     )
                                 ),
-                                bsCollapsePanel("Aggregation",
-                                    fluidRow(
-                                        column(6,
-                                               div(strong("Function"), style = "padding: 5px;font-size: 110%;")
-                                        ),
-                                        column(6,
-                                               selectInput("AggFunction", NULL, choices = c('None'='none', 'Sum'='sum', 'Min'='min', 'Avg'='mean', 'Median'='median', 'Max'='max'))
-                                        )
-                                    ),
-                                    conditionalPanel(
-                                        condition = "input.AggFunction != 'none'",
-                                        fluidRow(
-                                            column(6,
-                                                   div(strong("Unit"), style = "padding: 5px;font-size: 110%;")
-                                            ),
-                                            column(6,
-                                                   uiOutput("AggUnitPlaceholder")
-                                            )
-                                        ),
-                                        fluidRow(
-                                            column(12,
-                                                   uiOutput("AggCountPlaceholder")
-                                            )
-                                        )
+                                fluidRow(
+                                    column(6, offset=3,
+                                        actionButton("ApplyTsfBtn", "Apply", width = '100%')
                                     )
                                 )
                             ),
+                            width = 3
+                        ),
+                        mainPanel(
+                            wellPanel(class = "sad-app-container",
+                                h3("Original"),
+                                dygraphOutput("TrainSeriesClean"),
+                                br(),
+                                tags$div(id='tranform-res-placeholder')
+                            ),
                             fluidRow(
-                                column(6, offset=3,
-                                       actionButton("ApplyTsfBtn", "Apply", width = '100%')
+                                column(1, offset=11,
+                                    actionButton("Next2Btn", "Next", width = '100%')
                                 )
-                            )
-                        ),
-                        width = 3
-                    ),
-                    mainPanel(
-                        wellPanel(id="PrepareResPanel", style = "overflow-y:scroll;height:80%;", #TODO: figure out height options
-                                   h3("Original"),
-                                   dygraphOutput("TrainSeriesClean"),
-                                   br(),
-                                   tags$div(id='tranform-res-placeholder')
-                        ),
-                        fluidRow(
-                            column(1, offset=11,
-                                   actionButton("Next2Btn", "Next", width = '100%')
-                            )
-                        ),
-                        width = 9
+                            ),
+                            width = 9
+                        )
                     )
                 )
             ),
-            tabPanel(
-                "Model"
+            tabPanel("Model",
+                fluidPage(
+                    sidebarLayout(
+                        sidebarPanel(class = "sad-app-container",
+                            fluidRow(
+                                bsCollapse(open = "Model Setup", multiple = F,
+                                    bsCollapsePanel("Model Setup",
+                                        fluidRow(
+                                            column(6,
+                                                div(strong("Model type"), style = "padding: 5px;font-size: 110%;")
+                                            ),
+                                            column(6,
+                                                selectizeInput("ModelType", NULL, choices = c('Dyn. Thresholds'='dt', 'Prophet'='prophet'),
+                                                    options = list(
+                                                        placeholder = "Select",
+                                                        onInitialize = I('function() { this.setValue(""); }')
+                                                    )
+                                                )
+                                            )
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.ModelType != ''",
+                                            fluidRow(
+                                                column(6,
+                                                    div(strong("Train mode"), style = "padding: 5px;font-size: 110%;")
+                                                ),
+                                                column(6,
+                                                    selectizeInput("TrainMode", NULL, choices = c('Simple'='simple', 'Expert'='expert'),
+                                                        options = list(
+                                                            placeholder = "Select",
+                                                            onInitialize = I('function() { this.setValue(""); }')
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        ),
+                                        uiOutput("ModelParams"),
+                                        fluidRow(
+                                            column(6, offset = 3,
+                                                shinyjs::disabled(actionButton("ModelTrainBtn", "Train", width = "100%"))
+                                            )
+                                        )
+                                    ),
+                                    bsCollapsePanel("Model Tuning",
+                                        uiOutput("ModelTuning")
+                                    )
+                                )
+                            ),
+                            width = 3
+                        ),
+                        mainPanel(
+                            wellPanel(class = "sad-app-container",
+                                h3("Train data"),
+                                dygraphOutput("TrainSeriesDisplay")
+                            ),
+                            width = 9
+                        )
+                    )
+                )
             )
         )
     )

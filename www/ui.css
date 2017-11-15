@@ -1,14 +1,6 @@
-#sidebar01 {
+.sad-app-container {
         background-color: #FFFFFF;
         border-color: #4682b4;
 }
-#sidebar02 {
-        background-color: #FFFFFF;
-        border-color: #4682b4;
-}
-#PrepareResPanel {
-        background-color: #FFFFFF;
-        border-color: #4682b4;
-}    
 
 body, label, input, button, select {font-family: "Arial";}
