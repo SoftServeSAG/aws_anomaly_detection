@@ -46,7 +46,14 @@ find.anomalies <- function (ts.agg,
   }
   metric=data$values
   
-  time=difftime(ad.model$initial_time,data$time[1], units = ad.model$ts_type)
+  
+  diff_t = ad.model$ts_type
+  if (diff_t=="minutes")
+      diff_t="mins"
+  if (diff_t=="seconds")
+      diff_t="secs"
+  
+  time=difftime(ad.model$initial_time,data$time[1], units = diff_t)
   time=round(abs(as.numeric(time)/ad.model$ts_val)+1)
   
   

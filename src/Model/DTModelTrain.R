@@ -41,6 +41,7 @@ dynamicThreshold.train <- function (ts.agg,
 #         ad_results  - anomaly detection results
 #
 {
+    ts.agg$data.agg[,1][is.na(ts.agg$data.agg[,1])]=median(ts.agg$data.agg[,1], na.rm = T)
     model=NA
     if (type_th %in% c("Low", "High"))
     {

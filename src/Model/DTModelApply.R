@@ -20,6 +20,7 @@ dynamicThreshold.apply <- function (ts.agg,
     #                                       (values, thresolds/(thresolds.l,thresolds.h), anomalies)
     #
 {
+    ts.agg$data.agg[,1][is.na(ts.agg$data.agg[,1])]=median(ts.agg$data.agg[,1], na.rm = T)
     res=NA
     if ((type_th %in% c("Low", "High")) & tolower(type_th) %in% names(model))
     {

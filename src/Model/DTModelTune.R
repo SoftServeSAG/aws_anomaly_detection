@@ -19,8 +19,9 @@ dynamicThreshold.autoturn <- function ( ts.agg,
     #           list("Low" = c(coef, scale), "High"=c(coef, scale)):
     #
 {
-    coeff1 = -c(0:10)/10
-    coeff2 = c(0:10)/10
+    ts.agg$data.agg[,1][is.na(ts.agg$data.agg[,1])]=median(ts.agg$data.agg[,1], na.rm = T)
+    coeff1 = -c(-10:10)/10
+    coeff2 = c(-10:10)/10
     sc1=(c(10:20)/10)^2
     sc2=(c(10:20)/10)^2
     
@@ -45,6 +46,8 @@ dynamicThreshold.autoturn <- function ( ts.agg,
             }  
         dd=unlist(lapply(grids1, function(x){x[1]}))
         V=sort(dd[which(dd>=p_anomalies)])[1]
+        if (is.na(V))
+            V=max(dd)
         r1 = grids1[which(dd==V)[1]][[1]][2:3]
     }
    
@@ -71,6 +74,8 @@ dynamicThreshold.autoturn <- function ( ts.agg,
         
         dd=unlist(lapply(grids2, function(x){x[1]}))
         V=sort(dd[which(dd>=p_anomalies)])[1]
+        if (is.na(V))
+            V=max(dd)
         r2 = grids2[which(dd==V)[1]][[1]][2:3]
     }
     
