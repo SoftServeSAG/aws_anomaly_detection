@@ -43,34 +43,34 @@ model_prophet_train <- function(data, yearly="auto", weekly="auto", daily="auto"
 }
 
 
-model_prophet_new_interval <- function(fit, percent_up=0, percent_low=0, method='both'){
+model_prophet_new_interval <- function(fit_data, percent_up=0, percent_low=0, method='both'){
     # Function for change treshholds interval and detect anomalies
     #
     # Input:
-    # fit - result of model_prophet function
-    # percent_up - percent  for define up treshholds  
-    # percent_low - percent  for define low treshholds     
+    # fit_data - result data from model_prophet function
+    # percent_up - percent  for define up treshholds from -1 to 1 
+    # percent_low - percent  for define low treshholds from -1 to 1     
     # method - method for defile anomalies (both, high or low)
     #
     # Output:
     # model - prophet model
     # xts object with historical data, treshholds and anomalies for visualization
     
-    result <- fit$data
+    result <- fit_data
     
     # detect anomalies and change treshholds interval
     switch(method,
            'both' = {
-               result$thresolds.h <- result$yhat + (1 + percent_up / 100) * (result$yhat_upper - result$yhat)
-               result$thresolds.l <- result$yhat - (1 + percent_low / 100) * (result$yhat - result$yhat_lower)
+               result$thresolds.h <- result$yhat + (1 + percent_up) * (result$yhat_upper - result$yhat)
+               result$thresolds.l <- result$yhat - (1 + percent_low) * (result$yhat - result$yhat_lower)
                result$anomalies <- ifelse((result$values > result$thresolds.h) | (result$values < result$thresolds.l), result$values, NA)
            },
            'low' = {
-               result$thresolds <- result$yhat - (1 + percent_low / 100) * (result$yhat - result$yhat_lower)
+               result$thresolds <- result$yhat - (1 + percent_low) * (result$yhat - result$yhat_lower)
                result$anomalies <- ifelse(result$values < result$thresolds, result$values, NA)
            },
            'high' = {
-               result$thresolds <- result$yhat + (1 + percent_up / 100) * (result$yhat_upper - result$yhat)
+               result$thresolds <- result$yhat + (1 + percent_up) * (result$yhat_upper - result$yhat)
                result$anomalies <- ifelse(result$values > result$thresolds, result$values, NA)
            })
     
@@ -109,7 +109,7 @@ model_prophet_test <- function(fit, test){
 }
 
 
-model_prophet_train_test <- function(train, test, yearly="auto", weekly="auto", daily="auto", interval_width=0.95){
+model_prophet_train_test <- function(train, test, yearly="auto", weekly="auto", daily="auto", interval_width=0.95, method='train'){
     # Function prophet model for time-series data
     #
     # Input:
@@ -119,6 +119,8 @@ model_prophet_train_test <- function(train, test, yearly="auto", weekly="auto", 
     # weekly - weekly seasonality
     # daily - daily seasonality
     # interval_width - width of the uncertainty intervals provided for the forecast 
+    # method - select 'train' to train model only on train data, predict for train and test, 
+    # and 'all' - to train model on train and test, predict to both
     #
     # Output:
     # model - prophet model
@@ -126,10 +128,13 @@ model_prophet_train_test <- function(train, test, yearly="auto", weekly="auto", 
     # data_test - forecast data was predicted by model on test
     
     #prepare data for prophet model
-    if (dim(data)[2] == 1){
-        data <- rbind(train, test)
+    data <- rbind(train, test)
+    
+    if ((dim(data)[2] == 1) & (method == 'train')){
+        data_prophet <- data.frame(ds=index(train), y=coredata(train))
+    } else if (method == 'all'){
         data_prophet <- data.frame(ds=index(data), y=coredata(data))
-    } else{
+    } else {
         return("Please select data with one column for values!")
     }
     
@@ -137,7 +142,7 @@ model_prophet_train_test <- function(train, test, yearly="auto", weekly="auto", 
     m <- prophet(data_prophet,  yearly.seasonality = yearly, weekly.seasonality = weekly, 
                  daily.seasonality = daily, interval.width = interval_width)
     #future <- make_future_dataframe(m, periods = 1)
-    future <- data_prophet %>% select(ds)
+    future <- data.frame(ds=index(data))
     fcst <- predict(m, future)
     
     # prepare outputs for detecting anomalies
@@ -146,5 +151,6 @@ model_prophet_train_test <- function(train, test, yearly="auto", weekly="auto", 
     
     return(list(model=m,
                 data_train=result[1:dim(train)[1]],
-                data_test=result[(dim(train)[1] + 1):dim(data_prophet)[1]]))
+                data_test=result[(dim(train)[1] + 1):(dim(train)[1] + dim(test)[1])]))
 }
+

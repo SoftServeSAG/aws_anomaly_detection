@@ -120,7 +120,7 @@ plot_time_series(data, window_size = window_data)
 # testing 1 column with train-test split
 
 plot_time_series(data_agg, window_size = 0.9)
-plot_time_series(data_agg, window_size = 0.9, train_test_split = 0.95)
+plot_time_series(data_agg, window_size = 0, train_test_split = 0.95)
 
 
 # testing 4 column
@@ -204,3 +204,19 @@ xts.vis = TSThresholdsAnomaliesVis(ts.agg=my.model.h$raw_timeseries,
                                    thresholds = my.model.h$ad_results$thresholds, 
                                    anomalies = my.model.h$ad_results$anomalies)
 plot_time_series(xts.vis, treshhold_type = 'high')
+
+
+### train_test_split
+
+source('src/train_test_split.R')
+
+dim(data)
+
+fit <- train_test_split_time_series(data, split_data = .5)
+fit$train %>% dim()
+fit$test %>% dim()
+
+fit$train %>% tail()
+fit$test %>% head()
+
+fit$plot

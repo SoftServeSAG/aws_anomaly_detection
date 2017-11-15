@@ -89,6 +89,10 @@ find.anomalies <- function (ts.agg,
   dts$Threshold[dts$Threshold<0]=0
   
   i1=max(which(dts$Minute_Low < time))
+  if ((i1>0) & (dts$Minute_High[i1]-time)<0)
+  {
+      i1=min(which(dts$Minute_High > time)) 
+  }
   if (i1>0)
   {
     v=dts$Minute_High[i1]-time

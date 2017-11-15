@@ -59,7 +59,12 @@ dynamicThreshold.smart_train <- function (ts.agg,
   }
   
   if (is.null(periods))
-    periods=sort(ts_train$periods)
+  {
+      #periods=ts_train$periods[1:min(4, length(ts_train$periods))]
+      #periods=sort(periods)
+      periods=sort(ts_train$periods)[1:min(3, length(ts_train$periods))]
+  }
+    
   else
   {
     periods = sort(periods)   
@@ -115,7 +120,9 @@ dynamicThreshold.smart_train <- function (ts.agg,
     
   results=find.anomalies(ts.agg, ad.model = model.DT)
   
+  res=list()
+  res[[type_th]] = list(model = model.DT, timeseries = ts_test, raw_timeseries = ts.agg, ad_results = results)
   
-  return(list(model = model.DT, timeseries = ts_test, raw_timeseries = ts.agg, ad_results = results))
+  return(res)
   
 }
