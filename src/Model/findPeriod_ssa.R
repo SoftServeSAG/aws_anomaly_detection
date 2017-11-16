@@ -16,6 +16,12 @@ findPeriod_ssa <- function (data, dsigma=0.4) {
         per_estimate = parestimate(SSA, groups = list(c(1:(nsignif+1))),method = "esprit", solve.method="ls")
         periods = round(per_estimate$periods[per_estimate$periods>0 & !is.infinite(per_estimate$periods)])
         periods = unique(periods)
+        if (length(periods)>0)
+        {
+            for (k in 1:length(periods))
+                periods[k] = min(periods[k], floor(length(data)/2))
+        }
+        
        
         return(list(periods=periods, ssa=SSA))
 }
