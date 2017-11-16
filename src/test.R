@@ -32,13 +32,17 @@ HH_data <- readRDS("data/household_power_consumption_datatime.rds")
 data <- xts(x = HH_data$Voltage, order.by = HH_data$datetime)
 data <- data %>% remove_na_from_data(type = "mean") %>%
                 aggregation_data(type = "6 hours", func_aggregate = 'median')
-ttest <- denoise_data(data, type = 'wma')
+is.na(data) %>% sum()
+ttest <- denoise_data(data, type = 'gaussian')
+is.na(ttest) %>% sum()
 plot(data)
 plot(ttest)
 
 ttest <- denoise_data(data, type = 'wma', window_noise = 10)
 plot(data)
 plot(ttest)
+head(ttest)
+tail(ttest)
 
 n  = 50
 x  = seq(-pi,pi,length.out=n)

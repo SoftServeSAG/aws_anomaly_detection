@@ -46,6 +46,9 @@ denoise_data <- function(data, type='none', window_noise='auto'){
     
     # denoise data
     core_data_denoise <-  smth(core_data, window = window_noise, method = type) 
+    result <- xts(core_data_denoise, order.by = index_data)
+    result[is.na(result)] <- data[is.na(result)]
     
-    return(xts(core_data_denoise, order.by = index_data))
+    
+    return(result)
 }
