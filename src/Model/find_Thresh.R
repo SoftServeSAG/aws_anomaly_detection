@@ -187,10 +187,13 @@ find_Thresh <- function (metric,
 
         }
 
-
-        for (i in 2:nrow(dynamic_thresholds)) {
+        if  (nrow(dynamic_thresholds)>=2)
+        {
+            for (i in 2:nrow(dynamic_thresholds)) {
                 if (dynamic_thresholds[i, 1] == dynamic_thresholds[i-1, 2]) dynamic_thresholds[i, 1] <- dynamic_thresholds[i, 1] + 1
+            }
         }
+        
 
         
         return (dynamic_thresholds)

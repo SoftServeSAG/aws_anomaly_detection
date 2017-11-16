@@ -20,6 +20,8 @@ timeseries_train <- function (data.agg, ts_type, ts_val)
   #extract periods form timeseries
   periods_ssa=findPeriod_ssa(data.agg$values)
   periods=periods_ssa$periods
+  if (length(periods)==0)
+      periods = max(floor(length(data.agg$values)/2),2)
   SSA=periods_ssa$ssa
   
   #time series reconstruction
