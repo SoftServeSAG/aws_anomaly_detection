@@ -25,7 +25,6 @@ source("src/aggregation.R")
 source("src/denoise.R")
 source("src/remove_na_values.R")
 source("src/remove_outliers.R")
-source("src/train_test_split.R")
 
 #source("Preprocessing.R")
 library(plotly)
@@ -58,11 +57,9 @@ ts_val=1
 func='median'
 data.agg=aggregation_data(data_na.rm, type = paste(ts_val, ts_type), func_aggregate = func, quantile_percent = .5)
 
+data.agg.train = data.agg[1:(floor(length(data.agg)*0.8))]
+data.agg.test = data.agg[(floor(length(data.agg)*0.8)+1):length(data.agg)]
 
-train_test <- train_test_split_time_series(data.agg, split_data = 0.95)
-data.agg.train <- train_test$train
-data.agg.test <- train_test$test
-fit$plot
 
 # Time Series for model Training and Applying 
 
@@ -76,32 +73,14 @@ ts.agg=list(data.agg=data.agg, ts_type=ts_type, ts_val=ts_val, ts_func = func)
 data_train <- ts.agg.train$data.agg
 data_test <- ts.agg.test$data.agg
 
-# train model on train data and predict for train
-fit <- model_prophet_train_test(data_train, data_test, method = 'train')
-
-res <- model_prophet_new_interval(fit$data_train, percent_up=-30, percent_low=-30, method='both')
+fit <- model_prophet(data_train)
+fit_test <- model_prophet_test(fit, data_test)
+res <- model_prophet_new_interval(fit_test, percent_up=-30, percent_low=-30, method='both')
 plot_time_series(res, treshhold_type = 'both')
 
 an.analysis.res = anomalies.stat(ad_results = res, data, ts_type = ts_type, ts_val = ts_val)
-anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)$row_data.anomaly.plot
+anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)
 
-# train model on train data and predict for test
-fit <- model_prophet_train_test(data_train, data_test, method = 'train')
-
-res <- model_prophet_new_interval(fit$data_test, percent_up=-30, percent_low=-30, method='both')
-plot_time_series(res, treshhold_type = 'both')
-
-an.analysis.res = anomalies.stat(ad_results = res, data, ts_type = ts_type, ts_val = ts_val)
-anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)$row_data.anomaly.plot
-
-# train model on train and test data and predict for test
-fit <- model_prophet_train_test(data_train, data_test, method = 'all')
-
-res <- model_prophet_new_interval(fit$data_test, percent_up=-30, percent_low=-30, method='both')
-plot_time_series(res, treshhold_type = 'both')
-
-an.analysis.res = anomalies.stat(ad_results = res, data, ts_type = ts_type, ts_val = ts_val)
-anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)$row_data.anomaly.plot
 
 
 #------------- DT  --------------------
@@ -125,12 +104,12 @@ anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)
 
 
 coeff = dynamicThreshold.autoturn(ts.agg = ts.agg.test,model = full.model,type_th = anomalies_type, p_anomalies = 0.03)
-RES = dynamicThreshold.apply(ts.agg = ts.agg.test,model = full.model,
+RES1 = dynamicThreshold.apply(ts.agg = ts.agg.test,model = full.model,
                              type_th = anomalies_type, 
                              correction =list("Low" = c(coef = coeff$Low[1], scale = coeff$Low[2]),
                                               "High" = c(coef = coeff$High[1], scale = coeff$High[2])))
 
-plot_time_series(RES, treshhold_type = tolower(anomalies_type))
+plot_time_series(RES1, treshhold_type = tolower(anomalies_type))
 
 an.analysis.res = anomalies.stat(ad_results = RES, data, ts_type = ts.agg.test$ts_type, ts_val = ts.agg.test$ts_val)
 indx = which(an.analysis.res$ad_res$significance=="High")
@@ -162,32 +141,13 @@ ts.agg=list(data.agg=data.agg, ts_type=ts_type, ts_val=ts_val, ts_func = func)
 data_train <- ts.agg.train$data.agg
 data_test <- ts.agg.test$data.agg
 
-# train model on train data and predict on train
-fit <- model_prophet_train_test(data_train, data_test, method = 'train')
-
-res <- model_prophet_new_interval(fit$data_train, percent_up=-30, percent_low=-30, method='both')
+fit <- model_prophet(data_train)
+fit_test <- model_prophet_test(fit, data_test)
+res <- model_prophet_new_interval(fit_test, percent_up=-30, percent_low=-30, method='both')
 plot_time_series(res, treshhold_type = 'both')
 
 an.analysis.res = anomalies.stat(ad_results = res, data, ts_type = ts_type, ts_val = ts_val)
-anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)$row_data.anomaly.plot
-
-# train model on train data and predict on test
-fit <- model_prophet_train_test(data_train, data_test, method = 'train')
-
-res <- model_prophet_new_interval(fit$data_test, percent_up=-30, percent_low=-30, method='both')
-plot_time_series(res, treshhold_type = 'both')
-
-an.analysis.res = anomalies.stat(ad_results = res, data, ts_type = ts_type, ts_val = ts_val)
-anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)$row_data.anomaly.plot
-
-# train model on train and test data and predict on test
-fit <- model_prophet_train_test(data_train, data_test, method = 'all')
-
-res <- model_prophet_new_interval(fit$data_test, percent_up=-30, percent_low=-30, method='both')
-plot_time_series(res, treshhold_type = 'both')
-
-an.analysis.res = anomalies.stat(ad_results = res, data, ts_type = ts_type, ts_val = ts_val)
-anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)$row_data.anomaly.plot
+anomalies.detail(an.analysis.res$ad_res[2,], data, ts_func = func)
 
 
 

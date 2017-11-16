@@ -39,8 +39,15 @@ anomalies.stat <- function(ad_results, data, ts_type, ts_val)
     obs_dif = abs(expectedV - observedV)
     significance = cut(obs_dif, breaks=3, labels = c("Low", "Medium", "High"), include.lowest = T)
     
+    
+    diff_t = ts_type
+    if (diff_t=="minutes")
+        diff_t="mins"
+    if (diff_t=="seconds")
+        diff_t="secs"
+    
     ad_res = data.frame(end = index(ad_results)[indx], 
-                        start = index(ad_results)[indx] - as.difftime(ts_val, units=ts_type),
+                        start = index(ad_results)[indx] - as.difftime(ts_val, units=diff_t),
                         observed = observedV,
                         expected=expectedV,
                         significance = significance)
