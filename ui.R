@@ -1,8 +1,3 @@
-library(shiny)
-library(DT)
-library(shinyBS)
-library(dygraphs)
-
 shinyUI(
     fluidPage(
         tags$head(

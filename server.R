@@ -1,13 +1,13 @@
-library(shiny)
-library(dygraphs)
-library(stringr)
-source("src/timeSliders.R")
-source("src/remove_na_values.R")
-source("src/remove_outliers.R")
-source("src/denoise.R")
-source("src/aggregation.R")
-source("src/visualization.R")
-source("src/Model/dynamicThreshold.smart.R")
+get.aggregation.data <- function(input, aggData, data) {
+    return(
+        list(
+            data.agg = data$seriesPrepared,
+            ts_type = ifelse(input$AggFunction == "none", names(aggData)[1], input$AggUnit),
+            ts_val = ifelse(input$AggFunction == "none", aggData[[1]]['start'], input$AggCount),
+            ts_func = ifelse(input$AggFunction == "none", "mean", input$AggFunction)
+        )
+    )
+}
 
 shinyServer(function(input, output, session) {
     
@@ -256,7 +256,7 @@ shinyServer(function(input, output, session) {
                         div("Sensitivity", style = "padding: 5px;font-size: 110%;")
                     ),
                     column(6,
-                        selectInput("DT_Simple_Sens", NULL, choices = c("Low"="low","Medium"="medium","High"="high"), selected = "medium")
+                        selectInput("DT_Simple_Sens", NULL, choices = c("Low"="Low","Medium"="Medium","High"="High"), selected = "Medium")
                     )
                 )
             } 
@@ -358,13 +358,13 @@ shinyServer(function(input, output, session) {
                     fluidRow(
                         column(12,
                             h4("Low-bound anomalies"),
-                            sliderInput("PROPH_LBAnomScale", "Scale", min = -100, max = 100, value = 0)
+                            sliderInput("PROPH_LBAnomScale", "Scale", min = -1, max = 1, value = 0)
                         )
                     ),
                     fluidRow(
                         column(12,
                             h4("High-bound anomalies"),
-                            sliderInput("PROPH_HBAnomScale", "Scale", min = -100, max = 100, value = 0)
+                            sliderInput("PROPH_HBAnomScale", "Scale", min = -1, max = 1, value = 0)
                         )
                     )
                 )
@@ -385,9 +385,33 @@ shinyServer(function(input, output, session) {
         }
     })
     
-    # observeEvent(input$ModelTrainBtn, {
-    #     withProgress(message = "", value = 0, style = "old", {
-    #         data$model <- 
-    #     })
-    # })
+    observeEvent(input$ModelTrainBtn, {
+        withProgress(message = "", value = 0, style = "old", {
+            ts.agg <- get.aggregation.data(input, data$aggData, train)
+            if(input$ModelType == "dt") {
+                if(input$TrainMode == "simple") {
+                    train.params <- list(
+                        mode = input$TrainMode,
+                        sensitivity = input$DT_Simple_Sens
+                    )
+                } else {
+                    train.params <- c(
+                        mode = input$TrainMode,
+                        params = list(
+                            agg_th = input$DT_Expert_TAL,
+                            local_trend = input$DT_Expert_LTB,
+                            similar = input$DT_Expert_NS
+                        )
+                    )
+                }
+                data$model <- dynamicThreshold.train(ts.agg = ts.agg, train.params = train.params, type_th = "Both")
+                train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = ts.agg, model = data$model, type_th = "Both",
+                                                                 correction = c("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale),
+                                                                                "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
+            } else {
+                
+            }
+            
+        })
+    })
 })
