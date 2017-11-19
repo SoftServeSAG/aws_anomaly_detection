@@ -1,14 +1,3 @@
-get.aggregation.data <- function(input, aggData, data) {
-    return(
-        list(
-            data.agg = data$seriesPrepared,
-            ts_type = ifelse(input$AggFunction == "none", names(aggData)[1], input$AggUnit),
-            ts_val = ifelse(input$AggFunction == "none", aggData[[1]]['start'], input$AggCount),
-            ts_func = ifelse(input$AggFunction == "none", "mean", input$AggFunction)
-        )
-    )
-}
-
 shinyServer(function(input, output, session) {
     
     # GENERAL DATA PLACEHOLDERS
@@ -25,7 +14,8 @@ shinyServer(function(input, output, session) {
         seriesNoOut = NULL,
         seriesNoNs = NULL,
         seriesPrepared = NULL,
-        seriesAfterModel = NULL
+        seriesAfterModel = NULL,
+        anomaliesReport = NULL
     )
     
     # TEST DATA PLACEHOLDERS
@@ -35,7 +25,8 @@ shinyServer(function(input, output, session) {
         seriesNoOut = NULL,
         seriesNoNs = NULL,
         seriesPrepared = NULL,
-        seriesAfterModel = NULL
+        seriesAfterModel = NULL,
+        anomaliesReport = NULL
     )
     
     # FIRST PAGE CONTENT
@@ -124,14 +115,11 @@ shinyServer(function(input, output, session) {
         }
     })
     
-    output$NextBtn1Control <- renderUI({
-        if(!is.null(data$series)) {
-            fluidRow(
-                column(1, offset = 11,
-                    actionButton("Next1Btn", "Next", width = "100%")
-                )
-            )
-        }
+    observeEvent(input$TrainTestSplit, {
+        req(data$series)
+        split.coef = input$TrainTestSplit / 100
+        train$series <- data$series[1:(floor(length(data$series) * split.coef))]
+        test$series <- data$series[(floor(length(data$series) * split.coef)+1):length(data$series)]
     })
     
     observeEvent(c(input$DateTimeVar, input$TargetVar, input$DateTimeFmt), {
@@ -160,21 +148,11 @@ shinyServer(function(input, output, session) {
         }
     })
     
-    observeEvent(input$Next1Btn, {
-        split.coef = input$TrainTestSplit / 100
-        train$series <- data$series[1:(floor(length(data$series) * split.coef))]
-        test$series <- data$series[(floor(length(data$series) * split.coef)+1):length(data$series)]
-        updateTabsetPanel(session, "MNB", selected = "Prepare")
-    })
-    
     # SECOND (PREPARE) PAGE CONTENT
     # plot series, train part
     output$TrainSeriesClean <- renderDygraph({
-        if(is.null(train$series)) {
-            return(NULL)
-        } else {
-            return(plot_time_series(train$series))
-        }
+        req(train$series)
+        return(plot_time_series(train$series))
     })
     
     # aggregation dynamic UI parts
@@ -196,14 +174,18 @@ shinyServer(function(input, output, session) {
     # calculate results and add dynamic container for display
     observeEvent(input$ApplyTsfBtn, {
         withProgress(message = "", value = 0, style = "old", {
-            train$seriesNoMis <- remove_na_from_data(train$series, type = input$MissValTreatment)
-            train$seriesNoOut <-
-                remove_outliers_from_data(train$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
-            win_ns = if(input$NoiseWindowType != 'auto') input$NoiseWindowSize else input$NoiseWindowType
-            train$seriesNoNs <- denoise_data(train$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
-            agg_type = if(input$AggFunction != 'none') paste(input$AggCount, input$AggUnit, sep = " ") else input$AggFunction
-            train$seriesPrepared <- aggregation_data(train$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
-            train$seriesAfterModel <- train$seriesPrepared
+            # win_ns = ifelse(input$NoiseWindowType != 'auto', input$NoiseWindowSize, input$NoiseWindowType)
+            # agg_type = ifelse(input$AggFunction != 'none', paste(input$AggCount, input$AggUnit, sep = " "), input$AggFunction)
+            # for(itm in c(train, test)) {
+            #     print(itm)
+            #     itm$seriesNoMis <- remove_na_from_data(itm$series, type = input$MissValTreatment)
+            #     itm$seriesNoOut <- remove_outliers_from_data(itm$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
+            #     itm$seriesNoNs <- denoise_data(itm$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
+            #     itm$seriesPrepared <- aggregation_data(itm$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
+            #     itm$seriesAfterModel <- itm$seriesPrepared
+            # }
+            process.data(train, input)
+            process.data(test, input)
             
             removeUI(selector = "#processed-results")
             insertUI(
@@ -241,142 +223,68 @@ shinyServer(function(input, output, session) {
     })
     
     # THIRD (TRAIN) PAGE CONTENT
-    output$TrainSeriesDisplay <- renderDygraph({
-        if(is.null(train$seriesAfterModel)) {
-            return(NULL)
-        }
-        return(plot_time_series(train$seriesAfterModel))
-    })
-    
-    output$ModelParams <- renderUI({
+    model_params <- reactive({
+        ts.agg <- list(
+            data.agg = NULL,
+            ts_type = ifelse(input$AggFunction == "none", names(data$aggData)[1], input$AggUnit),
+            ts_val = ifelse(input$AggFunction == "none", data$aggData[[1]]['start'], input$AggCount),
+            ts_func = ifelse(input$AggFunction == "none", "mean", input$AggFunction)
+        )
+        
         if(input$ModelType == "dt") {
             if(input$TrainMode == "simple") {
-                fluidRow(
-                    column(6,
-                        div("Sensitivity", style = "padding: 5px;font-size: 110%;")
-                    ),
-                    column(6,
-                        selectInput("DT_Simple_Sens", NULL, choices = c("Low"="Low","Medium"="Medium","High"="High"), selected = "Medium")
-                    )
+                train.params <- list(
+                    mode = input$TrainMode,
+                    sensitivity = input$DT_Simple_Sens
                 )
-            } 
-            else if(input$TrainMode == "expert") {
-                fluidRow(
-                    column(12,
-                        fluidRow(
-                            column(12,
-                                sliderInput("DT_Expert_TAL", "Thresholds Aggregation Level", min = 0.05, max = 0.9, value = 0.6)
-                            )
-                        ),
-                        fluidRow(
-                            column(12,
-                                sliderInput("DT_Expert_LTB", "Local Trend Basis", min = 0.05, max = 0.9, value = 0.3)
-                            )
-                        ),
-                        fluidRow(
-                            column(12,
-                                sliderInput("DT_Expert_NS", "Neighbour Similarity", min = 0.01, max = 0.99, value = 0.1)
-                            )
-                        )
+            } else {
+                train.params <- list(
+                    mode = input$TrainMode,
+                    params = list(
+                        agg_th = input$DT_Expert_TAL,
+                        local_trend = input$DT_Expert_LTB,
+                        similar = input$DT_Expert_NS
                     )
                 )
             }
+        } else {
+            train.params = NULL
         }
-        else if(input$ModelType == "prophet") {
-            if(input$TrainMode == "expert") {
-                fluidRow(
-                    column(12,
-                        fluidRow(
-                            column(6,
-                                div("Yearly seasonality", style = "padding: 5px;font-size: 110%;")
-                            ),
-                            column(6,
-                                selectInput("PROPH_Expert_YS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
-                            )
-                        ),
-                        fluidRow(
-                            column(6,
-                                div("Weekly seasonality", style = "padding: 5px;font-size: 110%;")
-                            ),
-                            column(6,
-                                selectInput("PROPH_Expert_WS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
-                            )
-                        ),
-                        fluidRow(
-                            column(6,
-                                div("Daily seasonality", style = "padding: 5px;font-size: 110%;")
-                            ),
-                            column(6,
-                                selectInput("PROPH_Expert_DS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
-                            )
-                        ),
-                        fluidRow(
-                            column(12,
-                                sliderInput("PROPH_Expert_UI", "Uncertainty intervals", min = 0.6, max = 0.99, value = 0.9)
-                            )
-                        )
-                    )
-                )
-            }
-        }
+        return(list(ts.agg = ts.agg, train.params = train.params))
     })
     
-    output$ModelTuning <- renderUI({
-        if(input$ModelType == "dt") {
-            fluidRow(
-                column(12,
-                    fluidRow(
-                        column(12,
-                            h4("Low-bound anomalies"),
-                            sliderInput("DT_LBAnomCorr", "Correction", min = -1, max = 1, value = 0),
-                            sliderInput("DT_LBAnomScale", "Scale", min = 0.25, max = 4, value = 1)
-                        )
-                    ),
-                    fluidRow(
-                        column(12,
-                            h4("High-bound anomalies"),
-                            sliderInput("DT_HBAnomCorr", "Correction", min = -1, max = 1, value = 0),
-                            sliderInput("DT_HBAnomScale", "Scale", min = 0.25, max = 4, value = 1)
-                        )
-                    ),
-                    hr(),
-                    fluidRow(
-                        column(8,
-                            sliderInput("DT_AutoTunePct", NULL, min = 0.001, max = 0.05, value = 0.01)
-                        ),
-                        column(4, style = "padding: 15px;",
-                            actionButton("AutoTuneBtn", "Auto-tune", width = "100%"),
-                            bsTooltip("AutoTuneBtn", "Set slider values automatically", placement = "top")
-                        )
-                    )
-                )
+    params_train <- reactive({
+        req(train$seriesPrepared)
+        res = model_params()
+        res$ts.agg$data.agg = train$seriesPrepared
+        return(res)
+    })
+    
+    params_test <- reactive({
+        req(test$seriesPrepared)
+        res = model_params()
+        res$ts.agg$data.agg = test$seriesPrepared
+        return(res)
+    })
+    
+    anom_percent_train <- reactive({
+        req(train$anomaliesReport)
+        full.len = nrow(train$anomaliesReport$ad_res)
+        ll = sum(train$anomaliesReport$ad_res$significance == "Low")
+        ml = sum(train$anomaliesReport$ad_res$significance == "Medium")
+        hl = sum(train$anomaliesReport$ad_res$significance == "High")
+        return(
+            list(
+                low = ll/full.len * 100,
+                medium = ml/full.len * 100,
+                high = hl/full.len * 100
             )
-        }
-        else if(input$ModelType == "prophet") {
-            fluidRow(
-                column(12,
-                    fluidRow(
-                        column(12,
-                            h4("Low-bound anomalies"),
-                            sliderInput("PROPH_LBAnomScale", "Scale", min = -1, max = 1, value = 0)
-                        )
-                    ),
-                    fluidRow(
-                        column(12,
-                            h4("High-bound anomalies"),
-                            sliderInput("PROPH_HBAnomScale", "Scale", min = -1, max = 1, value = 0)
-                        )
-                    )
-                )
-            )
-        }
-        else {
-            fluidRow(
-                column(12,
-                    div("Please select model type")
-                )
-            )
-        }
+        )
+    })
+    
+    output$TrainSeriesDisplay <- renderDygraph({
+        req(train$seriesAfterModel)
+        return(plot_time_series(train$seriesAfterModel))
     })
     
     observeEvent(c(input$ModelType, input$TrainMode), {
@@ -385,33 +293,186 @@ shinyServer(function(input, output, session) {
         }
     })
     
+    # reset modelling state, when we change model type
+    observeEvent(input$ModelType, {
+        req(data$model)
+        # drop model
+        data$model <- NULL
+        # reset train
+        train$seriesAfterModel <- train$seriesPrepared
+        train$anomaliesReport <- NULL
+        # reset test
+        test$seriesAfterModel <- test$seriesPrepared
+        test$anomaliesReport <- NULL
+    })
+    
     observeEvent(input$ModelTrainBtn, {
         withProgress(message = "", value = 0, style = "old", {
-            ts.agg <- get.aggregation.data(input, data$aggData, train)
             if(input$ModelType == "dt") {
-                if(input$TrainMode == "simple") {
-                    train.params <- list(
-                        mode = input$TrainMode,
-                        sensitivity = input$DT_Simple_Sens
-                    )
-                } else {
-                    train.params <- c(
-                        mode = input$TrainMode,
-                        params = list(
-                            agg_th = input$DT_Expert_TAL,
-                            local_trend = input$DT_Expert_LTB,
-                            similar = input$DT_Expert_NS
-                        )
-                    )
-                }
-                data$model <- dynamicThreshold.train(ts.agg = ts.agg, train.params = train.params, type_th = "Both")
-                train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = ts.agg, model = data$model, type_th = "Both",
-                                                                 correction = c("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale),
-                                                                                "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
-            } else {
+                data$model <- dynamicThreshold.train(ts.agg = params_train()$ts.agg, train.params = params_train()$train.params, type_th = "Both")
+                train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_train()$ts.agg, model = data$model, type_th = "Both", 
+                                                                 correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
+                                                                                   "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
+                train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, params_train()$ts.agg$ts_type, params_train()$ts.agg$ts_val)
+                # apply for the test set
+                test$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_test()$ts.agg, model = data$model, type_th = "Both", 
+                                                                 correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
+                                                                                   "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
+                test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, params_test()$ts.agg$ts_type, params_test()$ts.agg$ts_val)
                 
+            } else { # prophet
+                data$model <- model_prophet_train_test(train$seriesAfterModel, test$seriesAfterModel, 
+                                                yearly = input$PROPH_Expert_YS, weekly = input$PROPH_Expert_WS, daily = input$PROPH_Expert_DS, 
+                                                interval_width = input$PROPH_Expert_UI, method = 'train')
+                train$seriesAfterModel <- model_prophet_new_interval(data$model$data_train, method = "both")
+                train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, model_params()$ts.agg$ts_type, model_params()$ts.agg$ts_val)
+                # apply for the test set
+                test$seriesAfterModel <- model_prophet_new_interval(data$model$data_test, method = "both")
+                test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, params_test()$ts.agg$ts_type, params_test()$ts.agg$ts_val)
             }
-            
+            updateCollapse(session, "MSetupCollapse", open = "Model Tuning")
         })
     })
+    
+    observeEvent(c(input$DT_LBAnomCorr, input$DT_LBAnomScale, input$DT_HBAnomCorr, input$DT_HBAnomScale), {
+        req(data$model)
+        withProgress(message = "", value = 0, style = "old", {
+            train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_train()$ts.agg, model = data$model, type_th = "Both", 
+                                                             correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
+                                                                               "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
+            train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, params_train()$ts.agg$ts_type, params_train()$ts.agg$ts_val)
+        })
+    })
+    
+    observeEvent(input$AutoTuneBtn, {
+        req(data$model)
+        withProgress(message = "", value = 0, style = "old", {
+            coefs = dynamicThreshold.autoturn(ts.agg = params_train()$ts.agg, model = data$model, type_th = 'Both', p_anomalies = input$DT_AutoTunePct)
+            updateSliderInput(session, "DT_LBAnomCorr", value = coefs$Low[1])
+            updateSliderInput(session, "DT_LBAnomScale", value = coefs$Low[2])
+            updateSliderInput(session, "DT_HBAnomCorr", value = coefs$High[1])
+            updateSliderInput(session, "DT_HBAnomScale", value = coefs$High[2])
+        })
+    })
+    
+    observeEvent(c(input$PROPH_LBAnomScale, input$PROPH_HBAnomScale), {
+        req(data$model)
+        withProgress(message = "", value = 0, style = "old", {
+            train$seriesAfterModel <- model_prophet_new_interval(data$model$data_train, percent_up = input$PROPH_HBAnomScale, 
+                                                                 percent_low = input$PROPH_LBAnomScale, method = "both")
+            train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, model_params()$ts.agg$ts_type, model_params()$ts.agg$ts_val)
+        })
+    })
+    
+    output$AnomaliesStats <- renderUI({
+        req(train$anomaliesReport)
+        fluidRow(
+            column(12,
+                h3("Anomalies Report"),
+                fluidRow(
+                    valueBox(anom_percent_train()$high, "% high"),
+                    valueBox(anom_percent_train()$medium, "% medium"),
+                    valueBox(anom_percent_train()$low, "% low")
+                )
+            )
+        )
+    })
+    
+    output$AnomaliesSummary <- DT::renderDataTable({
+        req(train$anomaliesReport)
+        return(train$anomaliesReport$ad_res)
+    },
+    selection = 'single',
+    options = list(dom = 'tsp', pageLength = 5, scrollX = T))
+    
+    output$SelectedAnomaly <- renderPlotly({
+        req(train$anomaliesReport)
+        req(input$AnomaliesSummary_rows_selected)
+        return(anomalies.detail(
+            train$anomaliesReport$ad_res[input$AnomaliesSummary_rows_selected,],
+            train$series,
+            params_train()$ts.agg$ts_func
+        )$row_data.anomaly.plot)
+    })
+    
+    # LAST (TEST) PAGE CONTENT
+    anom_percent_test <- reactive({
+        req(test$anomaliesReport)
+        full.len = nrow(test$anomaliesReport$ad_res)
+        ll = sum(test$anomaliesReport$ad_res$significance == "Low")
+        ml = sum(test$anomaliesReport$ad_res$significance == "Medium")
+        hl = sum(test$anomaliesReport$ad_res$significance == "High")
+        return(
+            list(
+                low = ll/full.len * 100,
+                medium = ml/full.len * 100,
+                high = hl/full.len * 100
+            )
+        )
+    })
+    
+    output$TestSeriesDisplay <- renderDygraph({
+        req(test$seriesAfterModel)
+        return(plot_time_series(test$seriesAfterModel))
+    })
+    
+    observeEvent(c(input$DT_LBAnomCorr_Test, input$DT_LBAnomScale_Test, input$DT_HBAnomCorr_Test, input$DT_HBAnomScale_Test), {
+        req(data$model)
+        withProgress(message = "", value = 0, style = "old", {
+            test$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_test()$ts.agg, model = data$model, type_th = "Both", 
+                                                             correction = list("Low" = c(coef = input$DT_LBAnomCorr_Test, scale = input$DT_LBAnomScale_Test), 
+                                                                               "High" = c(coef = input$DT_HBAnomCorr_Test, scale = input$DT_HBAnomScale_Test)))
+            test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, params_test()$ts.agg$ts_type, params_test()$ts.agg$ts_val)
+        })
+    })
+    
+    observeEvent(c(input$PROPH_LBAnomScale_Test, input$PROPH_HBAnomScale_Test), {
+        req(data$model)
+        withProgress(message = "", value = 0, style = "old", {
+            test$seriesAfterModel <- model_prophet_new_interval(data$model$data_test, percent_up = input$PROPH_HBAnomScale_Test, 
+                                                                 percent_low = input$PROPH_LBAnomScale_Test, method = "both")
+            test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, model_params()$ts.agg$ts_type, model_params()$ts.agg$ts_val)
+        })
+    })
+    
+    output$AnomaliesStatsTest <- renderUI({
+        req(test$anomaliesReport)
+        fluidRow(
+            column(12,
+                h3("Anomalies Report"),
+                fluidRow(
+                    valueBox(anom_percent_test()$high, "% high"),
+                    valueBox(anom_percent_test()$medium, "% medium"),
+                    valueBox(anom_percent_test()$low, "% low")
+                )
+            )
+        )
+    })
+    
+    output$AnomaliesSummaryTest <- DT::renderDataTable({
+        req(test$anomaliesReport)
+        return(test$anomaliesReport$ad_res)
+    },
+    selection = 'single',
+    options = list(dom = 'tsp', pageLength = 5, scrollX = T))
+    
+    output$SelectedAnomalyTest <- renderPlotly({
+        req(test$anomaliesReport)
+        req(input$AnomaliesSummaryTest_rows_selected)
+        return(anomalies.detail(
+            test$anomaliesReport$ad_res[input$AnomaliesSummaryTest_rows_selected,],
+            test$series,
+            params_test()$ts.agg$ts_func
+        )$row_data.anomaly.plot)
+    })
 })
+
+process.data <- function(itm, input) {
+    win_ns = ifelse(input$NoiseWindowType != 'auto', input$NoiseWindowSize, input$NoiseWindowType)
+    agg_type = ifelse(input$AggFunction != 'none', paste(input$AggCount, input$AggUnit, sep = " "), input$AggFunction)
+    itm$seriesNoMis <- remove_na_from_data(itm$series, type = input$MissValTreatment)
+    itm$seriesNoOut <- remove_outliers_from_data(itm$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
+    itm$seriesNoNs <- denoise_data(itm$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
+    itm$seriesPrepared <- aggregation_data(itm$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
+    itm$seriesAfterModel <- itm$seriesPrepared
+}

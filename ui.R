@@ -33,7 +33,6 @@ shinyUI(
                             dygraphOutput("OriginalSeries"),
                             hr(),
                             uiOutput("DataSplitControl"),
-                            uiOutput("NextBtn1Control"),
                             width = 9
                         )
                     )
@@ -44,7 +43,7 @@ shinyUI(
                     sidebarLayout(
                         sidebarPanel(class = "sad-app-container",
                             fluidRow(
-                                bsCollapse(open = "Transformation", multiple = F,
+                                bsCollapse(id = "TsfCollapse", open = "Transformation", multiple = F,
                                     bsCollapsePanel("Transformation",
                                         fluidRow(
                                             column(6,
@@ -145,11 +144,6 @@ shinyUI(
                                 br(),
                                 tags$div(id='tranform-res-placeholder')
                             ),
-                            fluidRow(
-                                column(1, offset=11,
-                                    actionButton("Next2Btn", "Next", width = '100%')
-                                )
-                            ),
                             width = 9
                         )
                     )
@@ -160,7 +154,7 @@ shinyUI(
                     sidebarLayout(
                         sidebarPanel(class = "sad-app-container",
                             fluidRow(
-                                bsCollapse(open = "Model Setup", multiple = F,
+                                bsCollapse(id = "MSetupCollapse", open = "Model Setup", multiple = F,
                                     bsCollapsePanel("Model Setup",
                                         fluidRow(
                                             column(6,
@@ -191,7 +185,82 @@ shinyUI(
                                                 )
                                             )
                                         ),
-                                        uiOutput("ModelParams"),
+                                        conditionalPanel(
+                                            condition = "input.ModelType == 'dt'",
+                                            conditionalPanel(
+                                                condition = "input.TrainMode == 'simple'",
+                                                fluidRow(
+                                                    column(6,
+                                                        div("Sensitivity", style = "padding: 5px;font-size: 110%;")
+                                                    ),
+                                                    column(6,
+                                                        selectInput("DT_Simple_Sens", NULL, choices = c("Low"="Low","Medium"="Medium","High"="High"), selected = "Medium")
+                                                    )
+                                                )
+                                            ),
+                                            conditionalPanel(
+                                                condition = "input.TrainMode == 'expert'",
+                                                fluidRow(
+                                                    column(12,
+                                                        fluidRow(
+                                                            column(12,
+                                                                sliderInput("DT_Expert_TAL", "Thresholds Aggregation Level", min = 0.05, max = 0.9, value = 0.6)
+                                                            )
+                                                        ),
+                                                        fluidRow(
+                                                            column(12,
+                                                                sliderInput("DT_Expert_LTB", "Local Trend Basis", min = 0.05, max = 0.9, value = 0.3)
+                                                            )
+                                                        ),
+                                                        fluidRow(
+                                                            column(12,
+                                                                sliderInput("DT_Expert_NS", "Neighbour Similarity", min = 0.01, max = 0.99, value = 0.1)
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.ModelType == 'prophet'",
+                                            conditionalPanel(
+                                                condition = "input.TrainMode == 'expert'",
+                                                fluidRow(
+                                                    column(12,
+                                                        fluidRow(
+                                                            column(6,
+                                                                div("Yearly seasonality", style = "padding: 5px;font-size: 110%;")
+                                                            ),
+                                                            column(6,
+                                                                selectInput("PROPH_Expert_YS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                                                            )
+                                                        ),
+                                                        fluidRow(
+                                                            column(6,
+                                                                div("Weekly seasonality", style = "padding: 5px;font-size: 110%;")
+                                                            ),
+                                                            column(6,
+                                                                selectInput("PROPH_Expert_WS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                                                            )
+                                                        ),
+                                                        fluidRow(
+                                                            column(6,
+                                                                div("Daily seasonality", style = "padding: 5px;font-size: 110%;")
+                                                            ),
+                                                            column(6,
+                                                                selectInput("PROPH_Expert_DS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                                                            )
+                                                        ),
+                                                        fluidRow(
+                                                            column(12,
+                                                                sliderInput("PROPH_Expert_UI", "Uncertainty intervals", min = 0.6, max = 0.99, value = 0.9)
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        ),
+                                        hr(),
                                         fluidRow(
                                             column(6, offset = 3,
                                                 shinyjs::disabled(actionButton("ModelTrainBtn", "Train", width = "100%"))
@@ -199,7 +268,63 @@ shinyUI(
                                         )
                                     ),
                                     bsCollapsePanel("Model Tuning",
-                                        uiOutput("ModelTuning")
+                                        conditionalPanel(
+                                            condition = "input.ModelType == 'dt'",
+                                            fluidRow(
+                                                column(12,
+                                                    fluidRow(
+                                                        column(12,
+                                                            h4("Low-bound anomalies"),
+                                                            sliderInput("DT_LBAnomCorr", "Correction", min = -1, max = 1, value = 0, step = 0.1),
+                                                            sliderInput("DT_LBAnomScale", "Scale", min = 0.25, max = 4, value = 1)
+                                                        )
+                                                    ),
+                                                    fluidRow(
+                                                        column(12,
+                                                            h4("High-bound anomalies"),
+                                                            sliderInput("DT_HBAnomCorr", "Correction", min = -1, max = 1, value = 0, step = 0.1),
+                                                            sliderInput("DT_HBAnomScale", "Scale", min = 0.25, max = 4, value = 1)
+                                                        )
+                                                    ),
+                                                    hr(),
+                                                    fluidRow(
+                                                        column(8,
+                                                            sliderInput("DT_AutoTunePct", NULL, min = 0.001, max = 0.05, value = 0.01),
+                                                            bsTooltip("DT_AutoTunePct", "Percent of anomaly cases for auto-tuning", placement = "top")
+                                                        ),
+                                                        column(4, style = "padding: 15px;",
+                                                            actionButton("AutoTuneBtn", "Auto-tune", width = "100%"),
+                                                            bsTooltip("AutoTuneBtn", "Set slider values automatically", placement = "top")
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.ModelType == 'prophet'",
+                                            fluidRow(
+                                                column(12,
+                                                    fluidRow(
+                                                        column(12,
+                                                            h4("Low-bound anomalies"),
+                                                            sliderInput("PROPH_LBAnomScale", "Scale", min = -1, max = 1, value = 0, step = 0.01)
+                                                        ),
+                                                        column(12,
+                                                            h4("High-bound anomalies"),
+                                                            sliderInput("PROPH_HBAnomScale", "Scale", min = -1, max = 1, value = 0, step = 0.01)
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        ),
+                                        conditionalPanel(
+                                            condition = "input.ModelType == ''",
+                                            fluidRow(
+                                                column(12,
+                                                    div("Please, select model type")
+                                                )
+                                            )
+                                        )
                                     )
                                 )
                             ),
@@ -208,7 +333,91 @@ shinyUI(
                         mainPanel(
                             wellPanel(class = "sad-app-container",
                                 h3("Train data"),
-                                dygraphOutput("TrainSeriesDisplay")
+                                dygraphOutput("TrainSeriesDisplay"),
+                                hr(),
+                                uiOutput("AnomaliesStats"),
+                                hr(),
+                                fluidRow(
+                                    column(6,
+                                        DT::dataTableOutput("AnomaliesSummary")
+                                    ),
+                                    column(6,
+                                        plotlyOutput("SelectedAnomaly")
+                                    )
+                                )
+                            ),
+                            width = 9
+                        )
+                    )
+                )
+            ),
+            tabPanel("Apply",
+                fluidPage(
+                    sidebarLayout(
+                        sidebarPanel(class = "sad-app-container",
+                            conditionalPanel(
+                                condition = "input.ModelType == 'dt'",
+                                fluidRow(
+                                    column(12,
+                                        fluidRow(
+                                            column(12,
+                                                h4("Low-bound anomalies"),
+                                                sliderInput("DT_LBAnomCorr_Test", "Correction", min = -1, max = 1, value = 0, step = 0.1),
+                                                sliderInput("DT_LBAnomScale_Test", "Scale", min = 0.25, max = 4, value = 1)
+                                            )
+                                        ),
+                                        fluidRow(
+                                            column(12,
+                                                h4("High-bound anomalies"),
+                                                sliderInput("DT_HBAnomCorr_Test", "Correction", min = -1, max = 1, value = 0, step = 0.1),
+                                                sliderInput("DT_HBAnomScale_Test", "Scale", min = 0.25, max = 4, value = 1)
+                                            )
+                                        )
+                                    )
+                                )
+                            ),
+                            conditionalPanel(
+                                condition = "input.ModelType == 'prophet'",
+                                fluidRow(
+                                    column(12,
+                                        fluidRow(
+                                            column(12,
+                                                h4("Low-bound anomalies"),
+                                                sliderInput("PROPH_LBAnomScale_Test", "Scale", min = -1, max = 1, value = 0, step = 0.01)
+                                            ),
+                                            column(12,
+                                                h4("High-bound anomalies"),
+                                                sliderInput("PROPH_HBAnomScale_Test", "Scale", min = -1, max = 1, value = 0, step = 0.01)
+                                            )
+                                        )
+                                    )
+                                )
+                            ),
+                            conditionalPanel(
+                                condition = "input.ModelType == ''",
+                                fluidRow(
+                                    column(12,
+                                        div("Model not selected")
+                                    )
+                                )
+                            ),
+                            width = 3
+                        ),
+                        mainPanel(
+                            wellPanel(class = "sad-app-container",
+                                h3("Test data"),
+                                dygraphOutput("TestSeriesDisplay"),
+                                hr(),
+                                uiOutput("AnomaliesStatsTest"),
+                                hr(),
+                                fluidRow(
+                                    column(6,
+                                        DT::dataTableOutput("AnomaliesSummaryTest")
+                                    ),
+                                    column(6,
+                                        plotlyOutput("SelectedAnomalyTest")
+                                    )
+                                )
                             ),
                             width = 9
                         )
