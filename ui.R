@@ -232,7 +232,7 @@ shinyUI(
                                                                 div("Yearly seasonality", style = "padding: 5px;font-size: 110%;")
                                                             ),
                                                             column(6,
-                                                                selectInput("PROPH_Expert_YS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                                                                selectInput("PROPH_Expert_YS", NULL, choices = c("Auto"= "auto", "True"= T, "False"=F))
                                                             )
                                                         ),
                                                         fluidRow(
@@ -240,7 +240,7 @@ shinyUI(
                                                                 div("Weekly seasonality", style = "padding: 5px;font-size: 110%;")
                                                             ),
                                                             column(6,
-                                                                selectInput("PROPH_Expert_WS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                                                                selectInput("PROPH_Expert_WS", NULL, choices = c("Auto"= "auto", "True"= T, "False"=F))
                                                             )
                                                         ),
                                                         fluidRow(
@@ -248,7 +248,7 @@ shinyUI(
                                                                 div("Daily seasonality", style = "padding: 5px;font-size: 110%;")
                                                             ),
                                                             column(6,
-                                                                selectInput("PROPH_Expert_DS", NULL, choices = c("Auto"= "auto", "True"= "true", "False"="false"))
+                                                                selectInput("PROPH_Expert_DS", NULL, choices = c("Auto"= "auto", "True"= T, "False"=F))
                                                             )
                                                         ),
                                                         fluidRow(
