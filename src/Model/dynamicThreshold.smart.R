@@ -86,21 +86,21 @@ dynamicThreshold.smart_train <- function (ts.agg,
       switch(train.params$sensitivity,
              'High' = list
              (
-               agg_th = 0.5, 
-               local_trend = 0.1, 
+               agg_th = 0.9, 
+               local_trend = 0.3, 
                similar = 0.01
              ),
              'Medium' = list
              (
-               agg_th = 0.6, 
-               local_trend = 0.3, 
-               similar = 0.1
+               agg_th = 0.9, 
+               local_trend = 0.5, 
+               similar = 0.05
              ),
              'Low' = list
              (
-               agg_th = 0.8, 
-               local_trend = 0.5, 
-               similar = 0.3
+               agg_th = 0.9, 
+               local_trend = 0.8, 
+               similar = 0.1
              )
            )
   }else{
