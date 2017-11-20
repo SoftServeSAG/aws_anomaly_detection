@@ -70,7 +70,12 @@ shinyServer(function(input, output, session) {
                                 div("Datetime format:", style = "padding: 5px;font-size: 110%;")
                             ),
                             column(6,
-                                textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
+                                selectInput("DateTimeCh", label=NULL, choices = c("Manualy", "YYYY-MM-DD" = "%Y-%m-%d",
+                                                                                     "YYYY-MM-DD HH:MM:SS" = "%Y-%m-%d %H:%M:%S",
+                                                                                     "YYYY/MM/DD" = "%Y/%m/%d", 
+                                                                                     "YYYY/MM/DD HH:MM:SS" = "%Y/%m/%d %H:%M:%S")),
+                                uiOutput("DateTimeF"),
+                                #textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
                                 bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")
                             )
                         )
@@ -81,6 +86,14 @@ shinyServer(function(input, output, session) {
                 footer = shinyjs::disabled(actionButton(inputId = "RoleSelectBtn", "Select"))
             )
         )
+    })
+    output$DateTimeF <- renderUI({
+        if (input$DateTimeCh=="Manualy")
+        {
+            return(list(textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
+                        bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")))
+        }
+        
     })
     
     output$UserData <- DT::renderDataTable({
@@ -123,7 +136,7 @@ shinyServer(function(input, output, session) {
     })
     
     observeEvent(c(input$DateTimeVar, input$TargetVar, input$DateTimeFmt), {
-        if (input$DateTimeVar != "" && input$TargetVar != "" && input$DateTimeFmt != "") {
+        if (input$DateTimeVar != "" && input$TargetVar != "" && (input$DateTimeFmt != "" || input$DateTimeCh!="Manualy")) {
             shinyjs::enable("RoleSelectBtn")
         }
     })
@@ -131,8 +144,13 @@ shinyServer(function(input, output, session) {
     observeEvent(input$RoleSelectBtn, {
         withProgress(message = "", value = 0, style = "old", {
             data$series <- data$orig[, c(input$DateTimeVar, input$TargetVar)]
-            data$series[, input$DateTimeVar] <-
-                strptime(data$series[, input$DateTimeVar], format = input$DateTimeFmt) %>% as.POSIXct()
+            if (input$DateTimeCh=="Manualy")
+                data$series[,input$DateTimeVar] <- strptime(data$series[,input$DateTimeVar], format=input$DateTimeFmt) %>% as.POSIXct() 
+            else
+                data$series[,input$DateTimeVar] <- strptime(data$series[,input$DateTimeVar], format=input$DateTimeCh) %>% as.POSIXct() 
+        
+            # data$series[, input$DateTimeVar] <-
+            #     strptime(data$series[, input$DateTimeVar], format = input$DateTimeFmt) %>% as.POSIXct()
             data$series <- xts(data$series[, 2], order.by = data$series[, 1])
             data$aggData <- timeSliders(data$series[, 1])
         })
@@ -275,9 +293,9 @@ shinyServer(function(input, output, session) {
         hl = sum(train$anomaliesReport$ad_res$significance == "High")
         return(
             list(
-                low = ll/full.len * 100,
-                medium = ml/full.len * 100,
-                high = hl/full.len * 100
+                low = round(ll/full.len * 100, 2),
+                medium = round(ml/full.len * 100,2),
+                high = round(hl/full.len * 100,2)
             )
         )
     })
@@ -309,7 +327,7 @@ shinyServer(function(input, output, session) {
     observeEvent(input$ModelTrainBtn, {
         withProgress(message = "", value = 0, style = "old", {
             if(input$ModelType == "dt") {
-                data$model <- dynamicThreshold.train(ts.agg = params_train()$ts.agg, train.params = params_train()$train.params, type_th = "Both")
+                data$model <- dynamicThreshold.train(ts.agg = params_train()$ts.agg,  train.params = params_train()$train.params, type_th = "Both")
                 train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_train()$ts.agg, model = data$model, type_th = "Both", 
                                                                  correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
                                                                                    "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
@@ -404,9 +422,9 @@ shinyServer(function(input, output, session) {
         hl = sum(test$anomaliesReport$ad_res$significance == "High")
         return(
             list(
-                low = ll/full.len * 100,
-                medium = ml/full.len * 100,
-                high = hl/full.len * 100
+                low = round(ll/full.len * 100,2),
+                medium = round(ml/full.len * 100,2),
+                high = round(hl/full.len * 100,2)
             )
         )
     })

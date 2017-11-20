@@ -43,7 +43,7 @@ shinyUI(
                     sidebarLayout(
                         sidebarPanel(class = "sad-app-container",
                             fluidRow(
-                                bsCollapse(id = "TsfCollapse", open = "Transformation", multiple = F,
+                                bsCollapse(id = "TsfCollapse", open = c("Transformation","Aggregation"), multiple = T,
                                     bsCollapsePanel("Transformation",
                                         fluidRow(
                                             column(6,
@@ -214,7 +214,7 @@ shinyUI(
                                                         ),
                                                         fluidRow(
                                                             column(12,
-                                                                sliderInput("DT_Expert_NS", "Neighbour Similarity", min = 0.01, max = 0.99, value = 0.1)
+                                                                sliderInput("DT_Expert_NS", "Neighbour Similarity", min = 0, max = 0.99, value = 0.1)
                                                             )
                                                         )
                                                     )

@@ -46,12 +46,12 @@ anomalies.stat <- function(ad_results, data, ts_type, ts_val)
     if (diff_t=="seconds")
         diff_t="secs"
     
-    ad_res = data.frame(end = index(ad_results)[indx], 
-                        start = index(ad_results)[indx] - as.difftime(ts_val, units=diff_t),
-                        observed = observedV,
-                        expected=expectedV,
+    ad_res = data.frame(start = index(ad_results)[indx] - as.difftime(ts_val, units=diff_t),
+                        end = index(ad_results)[indx], 
+                        observed = round(observedV,2),
+                        expected=round(expectedV,2),
                         significance = significance)
-    sign_stat= as.data.frame(round(prop.table(table(ad_res$significance))*100,2))
+    sign_stat= as.data.frame(((table(ad_res$significance))))
     names(sign_stat)=c("significance", "count")
     
     plt <- sign_stat %>% plot_ly(x=~significance, y=~count) %>% add_bars()

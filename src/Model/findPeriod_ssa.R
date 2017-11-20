@@ -18,6 +18,7 @@ findPeriod_ssa <- function (data, dsigma=0.4) {
         periods = unique(periods)
         if (length(periods)>0)
         {
+            periods=periods[1]
             for (k in 1:length(periods))
                 periods[k] = min(periods[k], floor(length(data)/2))
         }
