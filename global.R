@@ -33,5 +33,6 @@ source("src/Model/DTModelTrain.R")
 source("src/Model/DTModelApply.R")
 source("src/Model/DTModelTune.R")
 source("src/Model/anomalies.analysis.R")
+source("src/train_test_split.R")
 
 source("src/prophet/prophet_model.R")
