@@ -14,8 +14,9 @@ timeseries_train <- function (data.agg, ts_type, ts_val)
 {
   #prepare dataframe
   names(data.agg)=c("values")
+  ts.datetime = index(data.agg)
   data.agg=as.data.frame(data.agg)
-  data.agg$time=as.POSIXct(rownames(data.agg), "GMT",format = "%Y-%m-%d %H:%M:%S")
+  data.agg$time=ts.datetime
   
   #extract periods form timeseries
   periods_ssa=findPeriod_ssa(data.agg$values)
@@ -54,8 +55,9 @@ timeseries_test <- function (data.agg, ts_type, ts_val)
 {
   #prepare dataframe
   names(data.agg)=c("values")
+  ts.datetime = index(data.agg)
   data.agg=as.data.frame(data.agg)
-  data.agg$time=as.POSIXct(rownames(data.agg), "GMT",format = "%Y-%m-%d %H:%M:%S")
+  data.agg$time=ts.datetime
   
   
   time_series = list(ts = data.agg, ts_par=list(ts_type=ts_type, ts_val=ts_val))
