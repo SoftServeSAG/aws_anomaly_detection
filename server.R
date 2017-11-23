@@ -4,6 +4,7 @@ shinyServer(function(input, output, session) {
     data <- reactiveValues(
         orig = NULL,
         series = NULL,
+        loadErrMsg = NULL,
         aggData = NULL,
         model = NULL)
     
@@ -32,68 +33,83 @@ shinyServer(function(input, output, session) {
     # FIRST PAGE CONTENT
     # show modal dialog to select columns roles after file is loaded
     observeEvent(input$LocalFile, {
-        # read and store uploaded data
-        data$orig <- read.csv(
-            input$LocalFile$datapath,
-            header = input$FileHasHeader,
-            sep = input$FileSeparator,
-            quote = input$FileQuotation,
-            stringsAsFactors = F
+        res <- try(
+            data$orig <- as.data.frame(read_delim(
+                file = input$LocalFile$datapath,
+                delim = input$FileSeparator,
+                quote = input$FileQuotation,
+                col_names = input$FileHasHeader,
+                trim_ws = T
+            )), T
         )
         # role selection dialog
-        showModal(
-            modalDialog(
-                DT::dataTableOutput("UserData"),
-                hr(),
-                fluidRow(
-                    column(6,
-                        fluidRow(
-                            column(6,
-                                div("Time variable:", style = "padding: 5px;font-size: 110%;")
+        if(is.data.frame(res)) {
+            showModal(
+                modalDialog(
+                    DT::dataTableOutput("UserData"),
+                    hr(),
+                    fluidRow(
+                        column(6,
+                            fluidRow(
+                                column(6,
+                                    div("Time variable:", style = "padding: 5px;font-size: 110%;")
+                                ),
+                                column(6,
+                                    uiOutput("DateTimeVarSelector")
+                                )
                             ),
-                            column(6,
-                                uiOutput("DateTimeVarSelector")
+                            fluidRow(
+                                column(6,
+                                    tags$div("Target variable:", style = "padding: 5px;font-size: 110%;")
+                                ),
+                                column(6,
+                                    uiOutput("TargetVarSelector")
+                                )
                             )
                         ),
-                        fluidRow(
-                            column(6,
-                                tags$div("Target variable:", style = "padding: 5px;font-size: 110%;")
-                            ),
-                            column(6,
-                                uiOutput("TargetVarSelector")
+                        column(6,
+                            fluidRow(
+                                column(6,
+                                    div("Datetime format:", style = "padding: 5px;font-size: 110%;")
+                                ),
+                                column(6,
+                                    selectInput("DateTimeCh", label=NULL, choices = c("User-defined", "YYYY-MM-DD" = "%Y-%m-%d",
+                                                                                      "YYYY-MM-DD HH:MM:SS" = "%Y-%m-%d %H:%M:%S",
+                                                                                      "YYYY/MM/DD" = "%Y/%m/%d", 
+                                                                                      "YYYY/MM/DD HH:MM:SS" = "%Y/%m/%d %H:%M:%S")),
+                                    uiOutput("DateTimeF"),
+                                    bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")
+                                )
                             )
                         )
                     ),
-                    column(6,
-                        fluidRow(
-                            column(6,
-                                div("Datetime format:", style = "padding: 5px;font-size: 110%;")
-                            ),
-                            column(6,
-                                selectInput("DateTimeCh", label=NULL, choices = c("Manualy", "YYYY-MM-DD" = "%Y-%m-%d",
-                                                                                     "YYYY-MM-DD HH:MM:SS" = "%Y-%m-%d %H:%M:%S",
-                                                                                     "YYYY/MM/DD" = "%Y/%m/%d", 
-                                                                                     "YYYY/MM/DD HH:MM:SS" = "%Y/%m/%d %H:%M:%S")),
-                                uiOutput("DateTimeF"),
-                                #textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
-                                bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")
-                            )
+                    title="Role assignment", 
+                    size = "l",
+                    footer = list(
+                        column(8, htmlOutput("LoadErrorMsgBox", inline = T)),
+                        column(4, 
+                            shinyjs::disabled(actionButton(inputId = "RoleSelectBtn", "Select")), 
+                            actionButton(inputId = "CancelLoadBtn", "Cancel")
                         )
                     )
-                ),
-                title="Role assignment", 
-                size = "l", 
-                footer = shinyjs::disabled(actionButton(inputId = "RoleSelectBtn", "Select"))
+                )
             )
-        )
+        } else {
+            showModal(
+                modalDialog(
+                    title = "Load Error",
+                    size = "s",
+                    "Data load error. Please, check your file",
+                    footer = list(actionButton(inputId = "CloseMessageBtn", "Clone"))
+                )
+            )
+        }
     })
     output$DateTimeF <- renderUI({
-        if (input$DateTimeCh=="Manualy")
-        {
+        if (input$DateTimeCh=="User-defined") {
             return(list(textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
                         bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")))
         }
-        
     })
     
     output$UserData <- DT::renderDataTable({
@@ -122,39 +138,82 @@ shinyServer(function(input, output, session) {
         )
     })
     
+    output$LoadErrorMsgBox <- renderText({
+        req(data$loadErrMsg)
+        
+    })
+    
     output$DataSplitControl <- renderUI({
         if(!is.null(data$series)) {
             sliderInput("TrainTestSplit", "Data Split", min = 1, max = 100, step = 1, value = 67)
         }
     })
     
-    observeEvent(input$TrainTestSplit, {
-        req(data$series)
-        split.coef = input$TrainTestSplit / 100
-        train$series <- data$series[1:(floor(length(data$series) * split.coef))]
-        test$series <- data$series[(floor(length(data$series) * split.coef)+1):length(data$series)]
-    })
-    
     observeEvent(c(input$DateTimeVar, input$TargetVar, input$DateTimeFmt), {
-        if (input$DateTimeVar != "" && input$TargetVar != "" && (input$DateTimeFmt != "" || input$DateTimeCh!="Manualy")) {
+        if (input$DateTimeVar != "" && input$TargetVar != "" && (input$DateTimeFmt != "" || input$DateTimeCh!="User-defined")) {
             shinyjs::enable("RoleSelectBtn")
         }
     })
     
+    observeEvent(input$DateTimeCh, {
+        data$loadErrMsg <- NULL
+    })
+    
     observeEvent(input$RoleSelectBtn, {
+        # reset previous state
+        data$series <- NULL
+        data$aggData <- NULL
+        data$model <- NULL
+        train$series = NULL
+        train$seriesNoMis = NULL
+        train$seriesNoOut = NULL
+        train$seriesNoNs = NULL
+        train$seriesPrepared = NULL
+        train$seriesAfterModel = NULL
+        train$anomaliesReport = NULL
+        test$series = NULL
+        test$seriesNoMis = NULL
+        test$seriesNoOut = NULL
+        test$seriesNoNs = NULL
+        test$seriesPrepared = NULL
+        test$seriesAfterModel = NULL
+        test$anomaliesReport = NULL
+        
         withProgress(message = "", value = 0, style = "old", {
             data$series <- data$orig[, c(input$DateTimeVar, input$TargetVar)]
-            if (input$DateTimeCh=="Manualy")
+            if (input$DateTimeCh=="User-defined")
                 data$series[,input$DateTimeVar] <- strptime(data$series[,input$DateTimeVar], format=input$DateTimeFmt) %>% as.POSIXct() 
             else
                 data$series[,input$DateTimeVar] <- strptime(data$series[,input$DateTimeVar], format=input$DateTimeCh) %>% as.POSIXct() 
-        
-            # data$series[, input$DateTimeVar] <-
-            #     strptime(data$series[, input$DateTimeVar], format = input$DateTimeFmt) %>% as.POSIXct()
+            
+            # data validity checks
+            if(sum(is.na(data$series[,input$DateTimeVar])) > 0) {
+                if(sum(is.na(data$series[,input$DateTimeVar])) == nrow(data$series)) {
+                    data$loadErrMsg <- paste("<font color=\"#FF0000\"><b>", 'Wrong DateTime format', "</b></font>")
+                } else {
+                    data$loadErrMsg <- paste("<font color=\"#FF0000\"><b>", 'Wrong Data format', "</b></font>")
+                }
+                data$series <- NULL
+                return()
+            } else {
+                data$loadErrMsg <- NULL
+            }
+            
             data$series <- xts(data$series[, 2], order.by = data$series[, 1])
             data$aggData <- timeSliders(data$series[, 1])
+            removeModal()
         })
+    })
+    
+    observeEvent(input$CancelLoadBtn, {
+        data$loadErrMsg <- NULL
         removeModal()
+        shinyjs::reset("LocalFile")
+    })
+    
+    observeEvent(input$CloseMessageBtn, {
+        removeModal()
+        shinyjs::reset("LocalFile")
     })
     
     output$OriginalSeries <- renderDygraph({
@@ -162,7 +221,19 @@ shinyServer(function(input, output, session) {
             return(NULL)
         } else {
             tts = input$TrainTestSplit / 100
-            return(plot_time_series(data$series, window_size = 0.01, train_test_split = tts))
+            res = train_test_split_time_series(data$series, tts)
+            train$series <- res$train
+            test$series <- res$test
+            return(res$plot)
+        }
+    })
+    
+    observeEvent(input$TrainTestSplit, {
+        if (input$TrainTestSplit > 90) {
+            updateSliderInput(session, inputId = "TrainTestSplit",value = 90)
+        }
+        if (input$TrainTestSplit < 30) {
+            updateSliderInput(session, inputId = "TrainTestSplit",value = 30)
         }
     })
     
@@ -192,16 +263,6 @@ shinyServer(function(input, output, session) {
     # calculate results and add dynamic container for display
     observeEvent(input$ApplyTsfBtn, {
         withProgress(message = "", value = 0, style = "old", {
-            # win_ns = ifelse(input$NoiseWindowType != 'auto', input$NoiseWindowSize, input$NoiseWindowType)
-            # agg_type = ifelse(input$AggFunction != 'none', paste(input$AggCount, input$AggUnit, sep = " "), input$AggFunction)
-            # for(itm in c(train, test)) {
-            #     print(itm)
-            #     itm$seriesNoMis <- remove_na_from_data(itm$series, type = input$MissValTreatment)
-            #     itm$seriesNoOut <- remove_outliers_from_data(itm$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
-            #     itm$seriesNoNs <- denoise_data(itm$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
-            #     itm$seriesPrepared <- aggregation_data(itm$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
-            #     itm$seriesAfterModel <- itm$seriesPrepared
-            # }
             process.data(train, input)
             process.data(test, input)
             
@@ -313,13 +374,22 @@ shinyServer(function(input, output, session) {
     
     # reset modelling state, when we change model type
     observeEvent(input$ModelType, {
+        # reset controls
+        # dt
+        updateSliderInput(session, "DT_LBAnomCorr", value = 0)
+        updateSliderInput(session, "DT_LBAnomScale", value = 1)
+        updateSliderInput(session, "DT_HBAnomCorr", value = 0)
+        updateSliderInput(session, "DT_HBAnomScale", value = 1)
+        updateSliderInput(session, "DT_AutoTunePct", value = 0.01)
+        # prophet
+        updateSliderInput(session, "PROPH_LBAnomScale", value = 0)
+        updateSliderInput(session, "PROPH_HBAnomScale", value = 0)
+        
+        # reset state train/test
         req(data$model)
-        # drop model
         data$model <- NULL
-        # reset train
         train$seriesAfterModel <- train$seriesPrepared
         train$anomaliesReport <- NULL
-        # reset test
         test$seriesAfterModel <- test$seriesPrepared
         test$anomaliesReport <- NULL
     })
@@ -339,7 +409,7 @@ shinyServer(function(input, output, session) {
                 test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, params_test()$ts.agg$ts_type, params_test()$ts.agg$ts_val)
                 
             } else { # prophet
-                data$model <- model_prophet_train_test(train$seriesAfterModel, test$seriesAfterModel, 
+                data$model <- model_prophet_train_test(train$seriesPrepared, test$seriesPrepared, 
                                                 yearly = input$PROPH_Expert_YS, weekly = input$PROPH_Expert_WS, daily = input$PROPH_Expert_DS, 
                                                 interval_width = input$PROPH_Expert_UI, method = 'train')
                 train$seriesAfterModel <- model_prophet_new_interval(data$model$data_train, method = "both")
@@ -353,6 +423,12 @@ shinyServer(function(input, output, session) {
     })
     
     observeEvent(c(input$DT_LBAnomCorr, input$DT_LBAnomScale, input$DT_HBAnomCorr, input$DT_HBAnomScale), {
+        # sync test ui
+        updateSliderInput(session, "DT_LBAnomCorr_Test", value = input$DT_LBAnomCorr)
+        updateSliderInput(session, "DT_LBAnomScale_Test", value = input$DT_LBAnomScale)
+        updateSliderInput(session, "DT_HBAnomCorr_Test", value = input$DT_HBAnomCorr)
+        updateSliderInput(session, "DT_HBAnomScale_Test", value = input$DT_HBAnomScale)
+        # we need model to go any further
         req(data$model)
         withProgress(message = "", value = 0, style = "old", {
             train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_train()$ts.agg, model = data$model, type_th = "Both", 
@@ -374,6 +450,10 @@ shinyServer(function(input, output, session) {
     })
     
     observeEvent(c(input$PROPH_LBAnomScale, input$PROPH_HBAnomScale), {
+        # sync test ui
+        updateSliderInput(session, "PROPH_LBAnomScale_Test", value = input$PROPH_LBAnomScale)
+        updateSliderInput(session, "PROPH_HBAnomScale_Test", value = input$PROPH_HBAnomScale)
+        # we need model to go any further
         req(data$model)
         withProgress(message = "", value = 0, style = "old", {
             train$seriesAfterModel <- model_prophet_new_interval(data$model$data_train, percent_up = input$PROPH_HBAnomScale, 
@@ -388,9 +468,9 @@ shinyServer(function(input, output, session) {
             column(12,
                 h3("Anomalies Report"),
                 fluidRow(
-                    valueBox(anom_percent_train()$high, "% high"),
-                    valueBox(anom_percent_train()$medium, "% medium"),
-                    valueBox(anom_percent_train()$low, "% low")
+                    valueBox(paste(anom_percent_train()$high, "%"), "HIGH", color = "orange"),
+                    valueBox(paste(anom_percent_train()$medium, "%"), "MEDIUM", color = "light-blue"),
+                    valueBox(paste(anom_percent_train()$low, "%"), "LOW", color = "teal")
                 )
             )
         )
@@ -398,19 +478,22 @@ shinyServer(function(input, output, session) {
     
     output$AnomaliesSummary <- DT::renderDataTable({
         req(train$anomaliesReport)
-        return(train$anomaliesReport$ad_res)
+        ddf=train$anomaliesReport$ad_res
+        ddf$start=as.character(ddf$start)
+        ddf=ddf[,c(1,5,3,4)]
+        names(ddf)[1]='datetime'
+        return(ddf)
     },
     selection = 'single',
     options = list(dom = 'tsp', pageLength = 5, scrollX = T))
     
-    output$SelectedAnomaly <- renderPlotly({
+    output$SelectedAnomaly <- renderDygraph({
         req(train$anomaliesReport)
         req(input$AnomaliesSummary_rows_selected)
-        return(anomalies.detail(
-            train$anomaliesReport$ad_res[input$AnomaliesSummary_rows_selected,],
-            train$series,
-            params_train()$ts.agg$ts_func
-        )$row_data.anomaly.plot)
+        anomaly = train$anomaliesReport$ad_res[input$AnomaliesSummary_rows_selected,]
+        t1 = anomaly$start-(anomaly$end-anomaly$start)
+        t2 = anomaly$end+(anomaly$end-anomaly$start)
+        return(plot_time_series(train$series[paste(t1,'/',t2, sep = '')], window_size = c(anomaly$start, anomaly$end)))
     })
     
     # LAST (TEST) PAGE CONTENT
@@ -459,9 +542,9 @@ shinyServer(function(input, output, session) {
             column(12,
                 h3("Anomalies Report"),
                 fluidRow(
-                    valueBox(anom_percent_test()$high, "% high"),
-                    valueBox(anom_percent_test()$medium, "% medium"),
-                    valueBox(anom_percent_test()$low, "% low")
+                    valueBox(paste(anom_percent_test()$high, "%"), "HIGH", color = "orange"),
+                    valueBox(paste(anom_percent_test()$medium, "%"), "MEDIUM", color = "light-blue"),
+                    valueBox(paste(anom_percent_test()$low, "%"), "LOW", color = "teal")
                 )
             )
         )
@@ -469,19 +552,22 @@ shinyServer(function(input, output, session) {
     
     output$AnomaliesSummaryTest <- DT::renderDataTable({
         req(test$anomaliesReport)
-        return(test$anomaliesReport$ad_res)
+        ddf=test$anomaliesReport$ad_res
+        ddf$start=as.character(ddf$start)
+        ddf=ddf[,c(1,5,3,4)]
+        names(ddf)[1]='datetime'
+        return(ddf)
     },
     selection = 'single',
     options = list(dom = 'tsp', pageLength = 5, scrollX = T))
     
-    output$SelectedAnomalyTest <- renderPlotly({
+    output$SelectedAnomalyTest <- renderDygraph({
         req(test$anomaliesReport)
         req(input$AnomaliesSummaryTest_rows_selected)
-        return(anomalies.detail(
-            test$anomaliesReport$ad_res[input$AnomaliesSummaryTest_rows_selected,],
-            test$series,
-            params_test()$ts.agg$ts_func
-        )$row_data.anomaly.plot)
+        anomaly = test$anomaliesReport$ad_res[input$AnomaliesSummaryTest_rows_selected,]
+        t1 = anomaly$start-(anomaly$end-anomaly$start)
+        t2 = anomaly$end+(anomaly$end-anomaly$start)
+        return(plot_time_series(test$series[paste(t1,'/',t2, sep = '')], window_size = c(anomaly$start, anomaly$end)))
     })
 })
 

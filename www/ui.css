@@ -1,6 +1,37 @@
 .sad-app-container {
-        background-color: #FFFFFF;
-        border-color: #4682b4;
+    background-color: #FFFFFF;
+    border-color: #4682b4;
+}
+
+.small-box {
+    padding: 10px;
+}
+
+.small-box h3 {
+    font-size: 38px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    white-space: nowrap;
+    padding: 0;
+}
+
+.small-box p {
+    font-size: 12px;
+}
+
+.small-box.bg-orange { 
+    background-color: #ff851b !important; 
+    color: #ffffff !important; 
+}
+
+.small-box.bg-light-blue { 
+    background-color: #3c8dbc !important; 
+    color: #ffffff !important; 
+}
+
+.small-box.bg-teal { 
+    background-color: #39cccc !important; 
+    color: #ffffff !important; 
 }
 
 body, label, input, button, select {font-family: "Arial";}

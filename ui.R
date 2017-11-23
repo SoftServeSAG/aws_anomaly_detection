@@ -342,7 +342,7 @@ shinyUI(
                                         DT::dataTableOutput("AnomaliesSummary")
                                     ),
                                     column(6,
-                                        plotlyOutput("SelectedAnomaly")
+                                        dygraphOutput("SelectedAnomaly")
                                     )
                                 )
                             ),
@@ -415,7 +415,7 @@ shinyUI(
                                         DT::dataTableOutput("AnomaliesSummaryTest")
                                     ),
                                     column(6,
-                                        plotlyOutput("SelectedAnomalyTest")
+                                        dygraphOutput("SelectedAnomalyTest")
                                     )
                                 )
                             ),
