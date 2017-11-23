@@ -101,7 +101,7 @@ shinyServer(function(input, output, session) {
                     title = "Load Error",
                     size = "s",
                     "Data load error. Please, check your file",
-                    footer = list(actionButton(inputId = "CloseMessageBtn", "Clone"))
+                    footer = list(actionButton(inputId = "CloseMessageBtn", "Close"))
                 )
             )
         }
