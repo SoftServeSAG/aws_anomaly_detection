@@ -34,7 +34,7 @@ shinyServer(function(input, output, session) {
     # show modal dialog to select columns roles after file is loaded
     observeEvent(input$LocalFile, {
         res <- try(
-            data$orig <- as.data.frame(read_delim(
+            data$orig <- (read_delim(
                 file = input$LocalFile$datapath,
                 delim = input$FileSeparator,
                 quote = input$FileQuotation,
@@ -43,7 +43,8 @@ shinyServer(function(input, output, session) {
             )), T
         )
         # role selection dialog
-        if(is.data.frame(res)) {
+        if(ncol(data$orig)>1) {
+            data$orig=as.data.frame(data$orig)
             showModal(
                 modalDialog(
                     DT::dataTableOutput("UserData"),
@@ -114,7 +115,7 @@ shinyServer(function(input, output, session) {
     
     output$UserData <- DT::renderDataTable({
         req(data$orig)
-        return(data$orig)
+        data$orig
     },
     selection = 'none',
     options = list(dom = 'tsp', pageLength = 5, scrollX = T))
@@ -124,8 +125,8 @@ shinyServer(function(input, output, session) {
                        options = list(
                            placeholder = "Select",
                            onInitialize = I('function() { this.setValue(""); }')
-                       )
-        )
+                       ))
+    
     })
     
     output$TargetVarSelector <- renderUI({
