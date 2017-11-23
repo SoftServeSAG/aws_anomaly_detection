@@ -479,11 +479,14 @@ shinyServer(function(input, output, session) {
     
     output$AnomaliesSummary <- DT::renderDataTable({
         req(train$anomaliesReport)
-        ddf=train$anomaliesReport$ad_res
-        ddf$start=as.character(ddf$start)
-        ddf=ddf[,c(1,5,3,4)]
-        names(ddf)[1]='datetime'
-        return(ddf)
+        if (!is.null(train$anomaliesReport$ad_res)){
+            ddf=train$anomaliesReport$ad_res
+            ddf$start=as.character(ddf$start)
+            ddf=ddf[,c(1,5,3,4)]
+            names(ddf)[1]='datetime'
+            return(ddf) 
+        }
+        
     },
     selection = 'single',
     options = list(dom = 'tsp', pageLength = 5, scrollX = T))
@@ -553,11 +556,14 @@ shinyServer(function(input, output, session) {
     
     output$AnomaliesSummaryTest <- DT::renderDataTable({
         req(test$anomaliesReport)
-        ddf=test$anomaliesReport$ad_res
-        ddf$start=as.character(ddf$start)
-        ddf=ddf[,c(1,5,3,4)]
-        names(ddf)[1]='datetime'
-        return(ddf)
+        if (!is.null(test$anomaliesReport$ad_res)){
+            ddf=test$anomaliesReport$ad_res
+            ddf$start=as.character(ddf$start)
+            ddf=ddf[,c(1,5,3,4)]
+            names(ddf)[1]='datetime'
+            return(ddf)
+        }
+        
     },
     selection = 'single',
     options = list(dom = 'tsp', pageLength = 5, scrollX = T))
