@@ -32,15 +32,30 @@ train_test_split_time_series <- function(data, split_data=0.75){
     test <- tail(data, dim(data)[1] - split_index)
                                  
     # define dygraph plot
-    plot_data <- dygraph(merge(train, test, fill = NA)) %>% 
-        dySeries("train", label = "Train Data", color='black') %>% 
-        dySeries("test", label = "Test Data", color='blue') %>% 
-        dyHighlight(highlightSeriesOpts = list(strokeWidth = 2),
-                    highlightCircleSize = 4,
-                    highlightSeriesBackgroundAlpha = 0.2,
-                    hideOnMouseOut = FALSE) %>%
-        dyLegend(show = "always", hideOnMouseOut = FALSE) %>% 
-        dyOptions(colors = RColorBrewer::brewer.pal(4, "Accent")) 
+    if (length(test) > 0)
+    {
+        plot_data <- dygraph(merge(train, test, fill = NA)) %>% 
+            dySeries("train", label = "Train Data", color='steelblue') %>% 
+            dySeries("test", label = "Test Data", color=rgb(0.2,0.7,0.5)) %>% 
+            dyHighlight(highlightSeriesOpts = list(strokeWidth = 2),
+                        highlightCircleSize = 4,
+                        highlightSeriesBackgroundAlpha = 0.2,
+                        hideOnMouseOut = FALSE) %>%
+            dyLegend(show = "always", hideOnMouseOut = FALSE) %>% 
+            dyOptions(colors = RColorBrewer::brewer.pal(4, "Accent")) 
+    }
+    else{
+        plot_data <- dygraph(train) %>% 
+            dySeries(label = "Train Data", color='steelblue') %>% 
+            dyHighlight(highlightSeriesOpts = list(strokeWidth = 2),
+                        highlightCircleSize = 4,
+                        highlightSeriesBackgroundAlpha = 0.2,
+                        hideOnMouseOut = FALSE) %>%
+            dyLegend(show = "always", hideOnMouseOut = FALSE) %>% 
+            dyOptions(colors = RColorBrewer::brewer.pal(4, "Accent")) 
+    }
+        
+        
     
     
     

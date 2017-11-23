@@ -17,7 +17,7 @@ timeSliders <- function(datetime){
   d2=difftime(datetime[length(datetime)], datetime[1], units = "secs")
   d1=as.numeric(d1)
   d2=as.numeric(d2)
-  d_min=min(d1)
+  d_min=min(d1[d1>0])
   lag=d2
   
   start_val=c(seconds=d_min/1, 
