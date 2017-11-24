@@ -2,7 +2,8 @@ shinyUI(
     fluidPage(
         tags$head(
             tags$link(rel = "stylesheet", type = "text/css", href = "shiny.css"),
-            tags$link(rel = "stylesheet", type = "text/css", href = "ui.css")
+            tags$link(rel = "stylesheet", type = "text/css", href = "ui.css", id = "ui-styles"),
+            tags$script(src = "ui.js")
         ),
         shinyjs::useShinyjs(),
         navbarPage("Anomaly Detection", id = "MNB",
@@ -138,7 +139,7 @@ shinyUI(
                             width = 3
                         ),
                         mainPanel(
-                            wellPanel(class = "sad-app-container",
+                            wellPanel(class = "sad-app-container-sizeable",
                                 h3("Original"),
                                 dygraphOutput("TrainSeriesClean"),
                                 br(),
@@ -331,7 +332,7 @@ shinyUI(
                             width = 3
                         ),
                         mainPanel(
-                            wellPanel(class = "sad-app-container",
+                            wellPanel(class = "sad-app-container-sizeable",
                                 h3("Train data"),
                                 dygraphOutput("TrainSeriesDisplay"),
                                 hr(),
@@ -404,7 +405,7 @@ shinyUI(
                             width = 3
                         ),
                         mainPanel(
-                            wellPanel(class = "sad-app-container",
+                            wellPanel(class = "sad-app-container-sizeable",
                                 h3("Test data"),
                                 dygraphOutput("TestSeriesDisplay"),
                                 hr(),
