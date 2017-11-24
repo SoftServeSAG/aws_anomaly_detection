@@ -1,12 +1,18 @@
 shinyServer(function(input, output, session) {
     
+    flags <- reactiveValues(
+        train = FALSE,
+        zeros = FALSE
+    )
+    
     # GENERAL DATA PLACEHOLDERS
     data <- reactiveValues(
         orig = NULL,
         series = NULL,
         loadErrMsg = NULL,
         aggData = NULL,
-        model = NULL)
+        model = NULL
+    )
     
     # TRAIN DATA PLACEHOLDERS
     train <- reactiveValues(
@@ -43,8 +49,8 @@ shinyServer(function(input, output, session) {
             )), T
         )
         # role selection dialog
-        if(ncol(data$orig)>1) {
-            data$orig=as.data.frame(data$orig)
+        if(ncol(data$orig) > 1) {
+            data$orig = as.data.frame(data$orig)
             showModal(
                 modalDialog(
                     DT::dataTableOutput("UserData"),
@@ -107,7 +113,7 @@ shinyServer(function(input, output, session) {
         }
     })
     output$DateTimeF <- renderUI({
-        if (input$DateTimeCh=="User-defined") {
+        if (input$DateTimeCh == "User-defined") {
             return(list(textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
                         bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")))
         }
@@ -141,7 +147,7 @@ shinyServer(function(input, output, session) {
     
     output$LoadErrorMsgBox <- renderText({
         req(data$loadErrMsg)
-        
+        data$loadErrMsg
     })
     
     output$DataSplitControl <- renderUI({
@@ -150,9 +156,13 @@ shinyServer(function(input, output, session) {
         }
     })
     
-    observeEvent(c(input$DateTimeVar, input$TargetVar, input$DateTimeFmt), {
-        if (input$DateTimeVar != "" && input$TargetVar != "" && (input$DateTimeFmt != "" || input$DateTimeCh!="User-defined")) {
-            shinyjs::enable("RoleSelectBtn")
+    observeEvent(c(input$DateTimeVar, input$TargetVar, input$DateTimeFmt, input$DateTimeCh), {
+        if(!is.null(input$DateTimeVar) &&  !is.null(input$TargetVar)) {
+            if(input$DateTimeVar != "" && input$TargetVar != "" && (input$DateTimeFmt != "" || input$DateTimeCh != "User-defined")) {
+                shinyjs::enable("RoleSelectBtn")
+            } else {
+                shinyjs::disable("RoleSelectBtn")
+            }
         }
     })
     
@@ -397,19 +407,29 @@ shinyServer(function(input, output, session) {
     
     observeEvent(input$ModelTrainBtn, {
         withProgress(message = "", value = 0, style = "old", {
+            flags$train=TRUE
+            flags$zeros=TRUE
             if(input$ModelType == "dt") {
+                updateSliderInput(session, "DT_LBAnomCorr", value = 0)
+                updateSliderInput(session, "DT_LBAnomScale", value = 1)
+                updateSliderInput(session, "DT_HBAnomCorr", value = 0)
+                updateSliderInput(session, "DT_HBAnomScale", value = 1)
+                
                 data$model <- dynamicThreshold.train(ts.agg = params_train()$ts.agg,  train.params = params_train()$train.params, type_th = "Both")
                 train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_train()$ts.agg, model = data$model, type_th = "Both", 
-                                                                 correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
-                                                                                   "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
+                                                                 correction = list("Low" = c(coef = 0, scale = 1), 
+                                                                                   "High" = c(coef = 0, scale = 1)))
                 train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, params_train()$ts.agg$ts_type, params_train()$ts.agg$ts_val)
                 # apply for the test set
                 test$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_test()$ts.agg, model = data$model, type_th = "Both", 
-                                                                 correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
-                                                                                   "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
+                                                                 correction = list("Low" = c(coef = 0, scale = 1), 
+                                                                                   "High" = c(coef = 0, scale = 1)))
                 test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, params_test()$ts.agg$ts_type, params_test()$ts.agg$ts_val)
                 
             } else { # prophet
+                updateSliderInput(session, "PROPH_LBAnomScale", value = 0)
+                updateSliderInput(session, "PROPH_HBAnomScale", value = 0)
+                
                 data$model <- model_prophet_train_test(train$seriesPrepared, test$seriesPrepared, 
                                                 yearly = input$PROPH_Expert_YS, weekly = input$PROPH_Expert_WS, daily = input$PROPH_Expert_DS, 
                                                 interval_width = input$PROPH_Expert_UI, method = 'train')
@@ -424,22 +444,39 @@ shinyServer(function(input, output, session) {
     })
     
     observeEvent(c(input$DT_LBAnomCorr, input$DT_LBAnomScale, input$DT_HBAnomCorr, input$DT_HBAnomScale), {
-        # sync test ui
-        updateSliderInput(session, "DT_LBAnomCorr_Test", value = input$DT_LBAnomCorr)
-        updateSliderInput(session, "DT_LBAnomScale_Test", value = input$DT_LBAnomScale)
-        updateSliderInput(session, "DT_HBAnomCorr_Test", value = input$DT_HBAnomCorr)
-        updateSliderInput(session, "DT_HBAnomScale_Test", value = input$DT_HBAnomScale)
-        # we need model to go any further
-        req(data$model)
-        withProgress(message = "", value = 0, style = "old", {
-            train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_train()$ts.agg, model = data$model, type_th = "Both", 
-                                                             correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
-                                                                               "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
-            train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, params_train()$ts.agg$ts_type, params_train()$ts.agg$ts_val)
-        })
+        if (flags$train==FALSE ||  
+            (input$DT_LBAnomCorr!=0 || input$DT_LBAnomScale !=1 || input$DT_HBAnomCorr!=0 || input$DT_HBAnomScale !=1) ){
+            # sync test ui
+            flags$train=FALSE 
+            flags$zeros=FALSE 
+            updateSliderInput(session, "DT_LBAnomCorr_Test", value = input$DT_LBAnomCorr)
+            updateSliderInput(session, "DT_LBAnomScale_Test", value = input$DT_LBAnomScale)
+            updateSliderInput(session, "DT_HBAnomCorr_Test", value = input$DT_HBAnomCorr)
+            updateSliderInput(session, "DT_HBAnomScale_Test", value = input$DT_HBAnomScale)
+            # we need model to go any further
+            req(data$model)
+            withProgress(message = "", value = 0, style = "old", {
+                train$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_train()$ts.agg, model = data$model, type_th = "Both", 
+                                                                 correction = list("Low" = c(coef = input$DT_LBAnomCorr, scale = input$DT_LBAnomScale), 
+                                                                                   "High" = c(coef = input$DT_HBAnomCorr, scale = input$DT_HBAnomScale)))
+                train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, params_train()$ts.agg$ts_type, params_train()$ts.agg$ts_val)
+            })
+            
+        }else{
+            updateSliderInput(session, "DT_LBAnomCorr_Test", value = 0)
+            updateSliderInput(session, "DT_LBAnomScale_Test", value = 1)
+            updateSliderInput(session, "DT_HBAnomCorr_Test", value = 0)
+            updateSliderInput(session, "DT_HBAnomScale_Test", value = 1)
+            flags$train=FALSE 
+            
+        }
+        
+        
     })
     
     observeEvent(input$AutoTuneBtn, {
+        flags$train=FALSE
+        flags$zeros=FALSE
         req(data$model)
         withProgress(message = "", value = 0, style = "old", {
             coefs = dynamicThreshold.autoturn(ts.agg = params_train()$ts.agg, model = data$model, type_th = 'Both', p_anomalies = input$DT_AutoTunePct)
@@ -451,16 +488,25 @@ shinyServer(function(input, output, session) {
     })
     
     observeEvent(c(input$PROPH_LBAnomScale, input$PROPH_HBAnomScale), {
+        if (flags$train==FALSE || (input$PROPH_LBAnomScale!=0 || input$PROPH_HBAnomScale!=0)){
+            flags$train=FALSE 
+            flags$zeros=FALSE
+            updateSliderInput(session, "PROPH_LBAnomScale_Test", value = input$PROPH_LBAnomScale)
+            updateSliderInput(session, "PROPH_HBAnomScale_Test", value = input$PROPH_HBAnomScale)
+            # we need model to go any further
+            req(data$model)
+            withProgress(message = "", value = 0, style = "old", {
+                train$seriesAfterModel <- model_prophet_new_interval(data$model$data_train, percent_up = input$PROPH_HBAnomScale, 
+                                                                     percent_low = input$PROPH_LBAnomScale, method = "both")
+                train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, model_params()$ts.agg$ts_type, model_params()$ts.agg$ts_val)
+            })}else{
+                updateSliderInput(session, "PROPH_LBAnomScale_Test", value = 0)
+                updateSliderInput(session, "PROPH_HBAnomScale_Test", value = 0)
+                flags$train=FALSE
+            }
+       
         # sync test ui
-        updateSliderInput(session, "PROPH_LBAnomScale_Test", value = input$PROPH_LBAnomScale)
-        updateSliderInput(session, "PROPH_HBAnomScale_Test", value = input$PROPH_HBAnomScale)
-        # we need model to go any further
-        req(data$model)
-        withProgress(message = "", value = 0, style = "old", {
-            train$seriesAfterModel <- model_prophet_new_interval(data$model$data_train, percent_up = input$PROPH_HBAnomScale, 
-                                                                 percent_low = input$PROPH_LBAnomScale, method = "both")
-            train$anomaliesReport <- anomalies.stat(train$seriesAfterModel, train$series, model_params()$ts.agg$ts_type, model_params()$ts.agg$ts_val)
-        })
+        
     })
     
     output$AnomaliesStats <- renderUI({
@@ -522,22 +568,39 @@ shinyServer(function(input, output, session) {
     })
     
     observeEvent(c(input$DT_LBAnomCorr_Test, input$DT_LBAnomScale_Test, input$DT_HBAnomCorr_Test, input$DT_HBAnomScale_Test), {
-        req(data$model)
-        withProgress(message = "", value = 0, style = "old", {
-            test$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_test()$ts.agg, model = data$model, type_th = "Both", 
-                                                             correction = list("Low" = c(coef = input$DT_LBAnomCorr_Test, scale = input$DT_LBAnomScale_Test), 
-                                                                               "High" = c(coef = input$DT_HBAnomCorr_Test, scale = input$DT_HBAnomScale_Test)))
-            test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, params_test()$ts.agg$ts_type, params_test()$ts.agg$ts_val)
-        })
+        if (flags$zeros==FALSE ||
+            input$DT_LBAnomCorr_Test!=0 || input$DT_LBAnomScale_Test!=1 || input$DT_HBAnomCorr_Test!=0 || input$DT_HBAnomScale_Test!=1){
+            flags$train=FALSE 
+            flags$zeros = FALSE
+            req(data$model)
+            withProgress(message = "", value = 0, style = "old", {
+                test$seriesAfterModel <- dynamicThreshold.apply(ts.agg = params_test()$ts.agg, model = data$model, type_th = "Both", 
+                                                                correction = list("Low" = c(coef = input$DT_LBAnomCorr_Test, scale = input$DT_LBAnomScale_Test), 
+                                                                                  "High" = c(coef = input$DT_HBAnomCorr_Test, scale = input$DT_HBAnomScale_Test)))
+                test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, params_test()$ts.agg$ts_type, params_test()$ts.agg$ts_val)
+            })
+        }else{
+            flags$train=FALSE
+            flags$zeros = FALSE
+        }
+       
     })
     
     observeEvent(c(input$PROPH_LBAnomScale_Test, input$PROPH_HBAnomScale_Test), {
-        req(data$model)
-        withProgress(message = "", value = 0, style = "old", {
-            test$seriesAfterModel <- model_prophet_new_interval(data$model$data_test, percent_up = input$PROPH_HBAnomScale_Test, 
-                                                                 percent_low = input$PROPH_LBAnomScale_Test, method = "both")
-            test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, model_params()$ts.agg$ts_type, model_params()$ts.agg$ts_val)
-        })
+        if (flags$zeros==FALSE && input$PROPH_LBAnomScale_Test!=0 || input$PROPH_HBAnomScale_Test!=0){
+            flags$train=FALSE 
+            flags$zeros = FALSE
+            req(data$model)
+            withProgress(message = "", value = 0, style = "old", {
+                test$seriesAfterModel <- model_prophet_new_interval(data$model$data_test, percent_up = input$PROPH_HBAnomScale_Test, 
+                                                                    percent_low = input$PROPH_LBAnomScale_Test, method = "both")
+                test$anomaliesReport <- anomalies.stat(test$seriesAfterModel, test$series, model_params()$ts.agg$ts_type, model_params()$ts.agg$ts_val)
+            })
+        }else{
+            flags$train=FALSE
+            flags$zeros = FALSE
+        }
+        
     })
     
     output$AnomaliesStatsTest <- renderUI({
