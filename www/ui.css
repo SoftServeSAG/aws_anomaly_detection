@@ -3,6 +3,13 @@
     border-color: #4682b4;
 }
 
+.sad-app-container-sizeable {
+    background-color: #FFFFFF;
+    border-color: #4682b4;
+    height: 500px;
+    overflow-y: scroll;
+}
+
 .small-box {
     padding: 10px;
 }
