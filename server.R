@@ -53,6 +53,10 @@ shinyServer(function(input, output, session) {
             data$orig = as.data.frame(data$orig)
             showModal(
                 modalDialog(
+                    tags$head(
+                        # this changes the size of the popovers
+                        tags$style(".popover{width:350px;height:400px;max-width: 300%;}")
+                    ),
                     DT::dataTableOutput("UserData"),
                     hr(),
                     fluidRow(
@@ -85,7 +89,15 @@ shinyServer(function(input, output, session) {
                                                                                       "YYYY/MM/DD" = "%Y/%m/%d", 
                                                                                       "YYYY/MM/DD HH:MM:SS" = "%Y/%m/%d %H:%M:%S")),
                                     uiOutput("DateTimeF"),
-                                    bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")
+                                    bsPopover("DateTimeFmt", "Datetime format", paste("Specify datetime format for time scale",
+                                                                                      '<table width="90%" border="0"> <tr> <td><strong>Symbol</strong></td>', 
+                                                                                      '<td><strong>Meaning</strong></td> <td><strong>Example</strong></td> </tr>', 
+                                                                                      '<tr> <td><strong>%d</strong></td> <td>day as a number (0-31) </td> <td>01-31</td> </tr>', 
+                                                                                      '<tr> <td><strong>%a<br /> %A</strong></td> <td>abbreviated weekday <br /> unabbreviated weekday </td>', 
+                                                                                      '<td>Mon<br /> Monday</td> </tr> <tr> <td><strong>%m</strong></td> <td>month (00-12) </td> <td>00-12</td> </tr>', 
+                                                                                      '<tr> <td><strong>%b<br /> %B</strong></td> <td>abbreviated month<br /> unabbreviated month </td> <td>Jan<br /> January</td>', 
+                                                                                      '</tr> <tr> <td><strong>%y<br /> %Y</strong></td> <td>2-digit year <br /> 4-digit year </td> <td>07<br /> 2007</td> </tr> </table'), 
+                                              placement="top")
                                 )
                             )
                         )
@@ -114,8 +126,26 @@ shinyServer(function(input, output, session) {
     })
     output$DateTimeF <- renderUI({
         if (input$DateTimeCh == "User-defined") {
+            
             return(list(textInput("DateTimeFmt", NULL, placeholder = "HH:MM:SS"),
-                        bsPopover("DateTimeFmt", "Datetime format", "Specify datetime format for time scale", placement="top")))
+                        bsPopover("DateTimeFmt", "Datetime format", paste("Specify datetime format for time scale",
+                                                                          '<table width="100%" border="1"> <tr> <td><strong>Symbol</strong></td>', 
+                                                                          '<td><strong>Meaning</strong></td>  </tr>', 
+                                                                          '<tr> <td><strong>%d</strong></td> <td>day as a number (0-31) </td> </tr>', 
+                                                                          '<tr> <td><strong>%m</strong></td> <td>month (00-12) </td></tr>', 
+                                                                          '<tr> <td><strong>%y<br /> %Y</strong></td> <td>2-digit year <br /> 4-digit year </td> </tr>',
+                                                                          '<tr> <td><strong>%H</strong></td> <td>2-digit hours </td> </tr>',
+                                                                          '<tr> <td><strong>%M</strong></td> <td>2-digit minutes </td> </tr>',
+                                                                          '<tr> <td><strong>%S</strong></td> <td>2-digit seconds </td> </tr>',
+                                                                          '</table><br>',
+                                                                          '<strong>Example:</strong><br>',
+                                                                          '<table width="100%" border="1"> <tr> <td><strong>DateTime</strong></td>', 
+                                                                          '<td><strong>Format</strong></td>  </tr>', 
+                                                                          '<tr> <td>2017-12-01&nbsp12:20:02</td> <td>%Y-%m-%d&nbsp$H:%M:%S</td> </tr>',
+                                                                          '<tr> <td>10/30/2017&nbsp12:20:02</td> <td>%m/%d/%Y&nbsp$H:%M:%S</td> </tr>',
+                                                                          '</table>'
+                                                                          ), 
+                                  placement="top")))
         }
     })
     
