@@ -214,6 +214,8 @@ shinyServer(function(input, output, session) {
             data$aggData <- timeSliders(data$series[, 1])
             removeModal()
         })
+        
+        removeUI(selector = "#processed-results")
     })
     
     observeEvent(input$CancelLoadBtn, {
