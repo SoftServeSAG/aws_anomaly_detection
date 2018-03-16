@@ -4,7 +4,7 @@ APP_PORT=$2
 
 MEMORY="2g"
 SWAP_MEMORY="1g"
-CPUS = "4"
+CPUS="4"
 
 if [ $(docker inspect -f '{{.State.Running}}' $APP_NAMR) = "true" ]; then
   docker kill "${APP_NAME}"
