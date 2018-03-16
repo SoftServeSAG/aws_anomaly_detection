@@ -37,3 +37,5 @@ source("src/Model/DTModelTune.R")
 source("src/Model/anomalies.analysis.R")
 
 source("src/prophet/prophet_model.R")
+
+options(shiny.maxRequestSize=2048*1024^2, shiny.deprecation.messages=FALSE)
