@@ -31,12 +31,15 @@ remove_na_from_data_in_dates <- function(data, type='value', fill_value=0){
     
     # create full index
     data_index <- time(data)
-    deltas <- data_index[2:length(data_index)] - data_index[1:(length(data_index) - 1)]
+    deltas <- round(data_index[2:length(data_index)] - data_index[1:(length(data_index) - 1)], 0)
+    print(deltas[1:20])
     count_na_in_index <- sum(deltas - 1)
+    print(count_na_in_index)
     delta <-  min(data_index[2:length(data_index)] - data_index[1:(length(data_index) - 1)])
+    print(delta)
     new_index <- min(data_index) + (0:(length(data_index) - 1 + count_na_in_index)) * delta
-    print(data_index)
-    print(new_index)
+    print(data_index[1:20])
+    print(new_index[1:20])
     
     # create data with NA's in missing dates
     data_new <- zoo(x = NA, order.by = new_index) %>% as.xts()
