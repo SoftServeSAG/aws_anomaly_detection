@@ -48,10 +48,10 @@ shinyUI(
                                     bsCollapsePanel("Transformation",
                                         fluidRow(
                                             column(6,
-                                                div(strong("Missing values"), style = "padding: 5px;font-size: 110%;")
+                                                div(strong("N/A Treatment"), style = "padding: 5px;font-size: 110%;")
                                             ),
                                             column(6,
-                                                selectInput("MissValTreatment", NULL, choices = c('Zero'='zero', 'Linear'='linear', 'Mean'='mean'))
+                                                selectInput("NAValTreatment", NULL, choices = c('Zero'='zero', 'Linear'='linear', 'Mean'='mean'))
                                             )
                                         ),
                                         hr(),
@@ -120,6 +120,25 @@ shinyUI(
                                                 ),
                                                 column(6,
                                                     uiOutput("AggUnitPlaceholder")
+                                                )
+                                            ),
+                                            fluidRow(
+                                                column(6,
+                                                    div(strong("Missing Values"), style = "padding: 5px;font-size: 110%;")
+                                                ),
+                                                column(6,
+                                                    selectInput("MisValTreatment", NULL, choices = c('Linear'='linear', 'Mean'='mean', 'Value'='value'))
+                                                )
+                                            ),
+                                            conditionalPanel(
+                                                condition = "input.MisValTreatment == 'value'",
+                                                fluidRow(
+                                                    column(6,
+                                                        div(strong("Value"), style = "padding: 5px;font-size: 110%;")
+                                                    ),
+                                                    column(6,
+                                                        numericInput("MisValImputeNum", NULL, value = "0")
+                                                    )
                                                 )
                                             ),
                                             fluidRow(

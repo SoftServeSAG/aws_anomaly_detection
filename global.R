@@ -16,6 +16,7 @@ source("src/aggregation.R")
 source("src/timeSliders.R")
 source("src/visualization.R")
 source("src/train_test_split.R")
+source("src/remove_na_values_in_dates.R")
 
 source("src/Model/aggregate.thresholds.R")
 source("src/Model/app_timeseries.R")
