@@ -39,15 +39,25 @@ remove_na_from_data_in_dates <- function(data, type_ag = "1 hours", date_format=
            "minutes" = number_periods * 60, 
            "hours" = number_periods * 3600, 
            "days" =  number_periods * 3600 * 24, 
-           "weeks" = number_periods * 3600 * 24 * 7, 
-           "months" = number_periods * 3600 * 24 * 7 * 30, 
-           "quarters" = number_periods * 3600 * 24 * 7 * 90, 
-           "years" = number_periods * 3600 * 24 * 7 * 365
+           "weeks" = number_periods * 3600 * 24, 
+           "months" = number_periods * 3600 * 24, 
+           "quarters" = number_periods * 3600 * 24, 
+           "years" = number_periods * 3600 * 24
            )
 
     data <- align.time(data, n=count_sec)
+
+        # define NA's in dates
+    # if (type_periods %in% c("hours", "days",
+    #                         "weeks", 
+    #                     "months", 
+    #                     "quarters", 
+    #                     "years")){
+    #     data <- align.time(data, n=count_sec)
+    #     time(data)=as.POSIXct(time(data))
+    # }
     
-    # define NA's in dates
+    data <- make.index.unique(data, eps=1e-4)
     data <- izoo2rzoo(data, 
                       from=start(data), 
                       to=end(data), 
