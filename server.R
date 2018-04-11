@@ -680,9 +680,9 @@ process.data <- function(itm, input) {
     itm$seriesNoOut <- remove_outliers_from_data(itm$seriesNoMis, type = input$OutliersTreatment, number = input$OutliersSigmaCount)
     itm$seriesNoNs <- denoise_data(itm$seriesNoOut, type = input$NoiseTreatment, window_noise = win_ns)
     itm$seriesPrepared <- aggregation_data(itm$seriesNoNs, type = agg_type, func_aggregate = input$AggFunction)
-    print(head(itm$seriesPrepared, n = 25))
-    print(strtoi(input$MisValImputeNum))
-    itm$seriesPrepared <- remove_na_from_data_in_dates(itm$seriesPrepared, type = input$MisValTreatment, fill_value = strtoi(input$MisValImputeNum))
-    print(head(itm$seriesPrepared, n = 25))
+    #print(head(itm$seriesPrepared, n = 25))
+    #print(strtoi(input$MisValImputeNum))
+    itm$seriesPrepared <- remove_na_from_data_in_dates(itm$seriesPrepared, type_ag = agg_type, date_format=input$DateTimeCh, type = input$MisValTreatment, fill_value = strtoi(input$MisValImputeNum))
+    #print(head(itm$seriesPrepared, n = 25))
     itm$seriesAfterModel <- itm$seriesPrepared
 }

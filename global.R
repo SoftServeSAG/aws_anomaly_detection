@@ -8,6 +8,7 @@ library(Rssa)
 library(parallel)
 library(plotly)
 library(readr)
+require(hydroTSM)
 
 source("src/remove_na_values.R")
 source("src/remove_outliers.R")
