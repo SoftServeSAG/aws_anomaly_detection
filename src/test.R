@@ -69,8 +69,27 @@ remove_na_from_data(data, type = 'linear')
 source("src/remove_outliers.R")
 source("src/visualization.R")
 
-# remove_outliers_from_data
+# remove_na_from_data_in_dates
+source("src/remove_na_values_in_dates.R")
 
+n = 15
+full.dates = seq(Sys.Date(), by = 'day', length = n)
+
+
+full.dates2 <- c(full.dates[1:5], full.dates[8:length(full.dates)])
+y = rnorm(n - 2)
+serie = zoo(y, full.dates2)
+data <- as.xts(serie)
+
+remove_na_from_data(data)
+remove_na_from_data(data, type = 'zero', fill_value = 1)
+
+mean(data)
+remove_na_from_data(data, type = 'mean', fill_value = 1)
+
+remove_na_from_data(data, type = 'linear', fill_value = 1)
+
+# remove_outliers_from_data
 
 n = 30
 full.dates = seq(Sys.Date(), by = 'day', length = n)
