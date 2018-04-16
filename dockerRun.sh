@@ -11,3 +11,4 @@ if [ $(docker inspect -f '{{.State.Running}}' $APP_NAME) = "true" ]; then
 fi
 
 docker run -d --cpus="${CPUS}" --memory="${MEMORY}" --memory-swap="${SWAP_MEMORY}" --name "${APP_NAME}" -p "${APP_PORT}:3838" "${APP_NAME}"
+docker update --restart always "${APP_NAME}"
